@@ -1,31 +1,40 @@
-# Contributing
+# Contributing to All Code
 
-Thanks for helping improve All Code.
+## Set up the repository
 
-## Development setup
-
-```powershell
+```bash
+git clone https://github.com/itsramananshul/allcode.git
+cd allcode
 npm install
 npm run check
-node dist/cli.js agents
 ```
 
-Use a supported Node.js release (22 or newer). Keep changes focused and include tests for routing, parsing, security boundaries, or platform-specific process behavior.
+Node.js 22 and 24 are used in CI.
 
-## Design rules
+## Make a change
 
-- Keep the All Code interface provider-neutral and monochrome.
-- Use public, supported CLI surfaces; do not copy credentials or impersonate another client.
-- Preserve native provider IDs instead of inventing universal model aliases.
-- Do not bypass agent permission systems.
-- Add a small adapter rather than scattering provider conditionals through the interface.
-- Document behavior and limitations in the same change.
+Keep provider-specific behavior inside an adapter. The terminal, session store, and task broker should operate on `AgentName` and native model IDs rather than vendor-specific assumptions.
 
-## Before opening a pull request
+Add tests when changing:
 
-```powershell
+- process arguments or environment variables
+- event parsing
+- model discovery
+- session delivery
+- workspace boundaries
+- terminal input handling
+
+## Run the checks
+
+```bash
 npm run check
 npm pack --dry-run
 ```
 
-Describe the user-visible behavior, platforms tested, and any native CLI/version assumptions. Never commit `.allcode/`, credentials, generated logs, `node_modules/`, or the ignored `upstream/` reference clones.
+The package preview must contain `dist/cli.js`, the documentation, and the All Code assets.
+
+## Pull requests
+
+Explain the behavior being changed, the agents and operating systems tested, and any CLI version assumptions. Keep unrelated cleanup in a separate pull request.
+
+Do not commit credentials, `.allcode/`, `node_modules/`, `dist/`, logs, or the ignored `upstream/` reference clones.

@@ -1,13 +1,19 @@
 # Security policy
 
-## Supported versions
+## Reporting a vulnerability
 
-Security fixes are applied to the latest release on the default branch while All Code is pre-1.0.
+Use GitHub's private vulnerability reporting for `itsramananshul/allcode`. If private reporting is unavailable, contact the repository owner through the address listed on their GitHub profile.
 
-## Reporting
+Include:
 
-Use GitHub's private vulnerability reporting for `itsramananshul/allcode` when available. If it is unavailable, contact the repository owner privately through the contact method on their GitHub profile.
+- affected commit or version
+- operating system and Node.js version
+- reproduction steps
+- impact
+- a minimal proof of concept
 
-Include affected versions, platform, reproduction steps, impact, and a minimal proof of concept. Remove API keys, access tokens, private source code, and personal data from reports.
+Remove credentials, private source code, and personal data from the report. Do not open a public issue until a fix is available.
 
-Do not open a public issue for an unpatched vulnerability.
+## Supported version
+
+Security fixes are applied to the latest commit on `main` while the project is pre-1.0.

@@ -1,44 +1,97 @@
 # Command reference
 
-## Interactive workspace
-
-| Command | Purpose |
-| --- | --- |
-| `allcode [--agent NAME] [--cwd PATH]` | Open the All Code interface. |
-| `/agent [NAME]` | Select or switch the execution backend. `/provider` is an alias. |
-| `/model [ID]` | Browse the active backend's catalog or select an exact model ID. |
-| `/models` | Discover and display catalogs for all three backends. |
-| `/status` | Show the active agent, model, native session ID, and shared context file. |
-| `/clear` | Redraw the interface without deleting context. |
-| `/help` | Show interactive commands. |
-| `/exit` | Close All Code. `/quit` is an alias. |
-
-Any other input is submitted to the selected agent. Unknown slash commands are forwarded too, but whether they behave like an interactive provider command depends on that CLI's non-interactive interface.
-
-## Shell commands
+## Workspace
 
 ```text
+allcode [--agent claude|opencode|codex] [--cwd PATH]
+```
+
+`--agent` selects the initial route. `--cwd` opens another working directory.
+
+## Slash commands
+
+| Command | Description |
+| --- | --- |
+| `/agent` | Open the agent picker |
+| `/agent claude` | Switch to Claude Code |
+| `/agent opencode` | Switch to OpenCode |
+| `/agent codex` | Switch to Codex |
+| `/provider` | Alias for `/agent` |
+| `/model` | Open the model picker |
+| `/model <id>` | Select a native model ID |
+| `/models` | List models from all installed agents |
+| `/status` | Print the active agent, model, session ID, and state file |
+| `/clear` | Redraw the All Code workspace |
+| `/help` | Print the command list |
+| `/exit` | Exit; `/quit` is an alias |
+
+Input that does not match an All Code command is sent to the active agent. This includes slash-prefixed input, so commands supported by an agent's non-interactive mode can still be used.
+
+## Inspect agents
+
+```bash
 allcode agents
-allcode models [claude|opencode|codex]
-allcode run AGENT [--cwd PATH] [--model ID] [--session ID] PROMPT
-allcode native [--agent AGENT] [--cwd PATH]
+```
+
+Prints the availability and resolved executable for Claude Code, OpenCode, and Codex.
+
+## Inspect models
+
+```bash
+allcode models
+allcode models claude
+allcode models opencode
+allcode models codex
+```
+
+## Run one task
+
+```text
+allcode run <agent> [--cwd PATH] [--model ID] [--session ID] <prompt>
+```
+
+Examples:
+
+```bash
+allcode run opencode --model opencode/big-pickle "find the failing test"
+allcode run codex "review the current diff"
+allcode run claude "explain the parser architecture"
+```
+
+The command prints the native session ID and final response as JSON.
+
+## Native interface
+
+```bash
+allcode native --agent opencode
+```
+
+Native mode embeds the selected agent's own terminal interface. Use the default `allcode` command for the shared All Code interface and persisted cross-agent conversation.
+
+## MCP server
+
+```bash
 allcode mcp
 ```
 
-`allcode native` is a compatibility mode that embeds the selected product's own terminal UI. The default `allcode` command uses All Code's stable monochrome interface.
+Starts the All Code MCP server over standard input and output. Agent adapters configure this automatically.
 
-`allcode mcp` speaks Model Context Protocol over standard input/output. It is intended to be launched by an MCP client, not used interactively.
+The server exposes:
 
-## Environment variables
+- `list_agents`
+- `start_task`
+- `task_status`
+- `list_tasks`
+- `cancel_task`
 
-| Variable | Meaning |
+## Environment
+
+| Variable | Description |
 | --- | --- |
-| `ALL_CODE_ALLOWED_ROOTS` | OS-path-delimiter-separated directories available to delegated tasks. |
-| `ALL_CODE_MAX_DEPTH` | Maximum delegation nesting; defaults to `3`. |
-| `ALL_CODE_DEPTH` | Internal current nesting depth. |
-| `ALL_CODE_HOST` | Internal identifier for the currently hosting agent. |
-| `ALL_CODE_CLAUDE_COMMAND` | Absolute Claude Code executable override. |
-| `ALL_CODE_OPENCODE_COMMAND` | Absolute OpenCode executable override. |
-| `ALL_CODE_CODEX_COMMAND` | Absolute Codex executable override. |
+| `ALL_CODE_ALLOWED_ROOTS` | Directories available to delegated tasks, separated by the operating system path delimiter |
+| `ALL_CODE_MAX_DEPTH` | Maximum delegation depth; default `3` |
+| `ALL_CODE_CLAUDE_COMMAND` | Absolute path to the Claude Code executable |
+| `ALL_CODE_OPENCODE_COMMAND` | Absolute path to the OpenCode executable |
+| `ALL_CODE_CODEX_COMMAND` | Absolute path to the Codex executable |
 
-On Windows, separate allowed roots with `;`. On macOS and Linux, use `:`.
+`ALL_CODE_DEPTH` and `ALL_CODE_HOST` are set internally for delegated processes.

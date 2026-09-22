@@ -1,86 +1,126 @@
-# All Code
-
 <p align="center">
-  <img src="assets/allcode-mascot.png" alt="All Code mascot" width="220">
+  <img src="assets/allcode-mascot.png" alt="All Code" width="220">
 </p>
 
-<p align="center"><strong>One terminal workspace. Every coding agent.</strong></p>
+<h1 align="center">All Code</h1>
 
-All Code is a local, open-source terminal workspace for **Claude Code**, **OpenCode**, and **Codex**. It gives you one stable monochrome interface, lets you switch the active execution engine with `/agent`, discovers each engine's models, carries conversation context across switches, and gives every engine an MCP broker for delegating work to the other two.
+<p align="center">Claude Code, OpenCode, and Codex in one terminal.</p>
 
-All Code does not proxy private APIs or copy credentials. Each task runs through the selected CLI, with that CLI's own authentication, subscription, model access, tools, permissions, and session state.
+<p align="center">
+  <a href="https://github.com/itsramananshul/allcode/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/itsramananshul/allcode/ci.yml?branch=main&style=flat-square&label=build" alt="Build status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-white?style=flat-square" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/node-%3E%3D22-lightgrey?style=flat-square" alt="Node.js 22 or newer">
+</p>
 
-## What works
+All Code keeps one conversation while you move between coding agents. Start a task in OpenCode, switch to Claude Code, send a review to Codex, and continue without rebuilding the context by hand.
 
-- One `allcode` command and one consistent interface on Windows, macOS, and Linux.
-- `/agent claude`, `/agent opencode`, and `/agent codex` switch the active backend.
-- `/model` and `/models` discover models from installed CLIs instead of maintaining a stale hard-coded catalog.
-- Per-agent model and native session IDs persist in `.allcode/session.json`.
-- Conversation turns are handed to an agent when it joins an existing workspace.
-- The active agent receives MCP tools for starting, checking, listing, and cancelling tasks in the other engines.
-- Delegated work is restricted to configured workspace roots and capped by a recursion limit.
-- A compatibility mode can still open each product's native terminal UI with `allcode native`.
+Each agent runs through its installed CLI. The models, account, tools, configuration, and permissions attached to that CLI stay available.
 
-## Quick start
+## Install
 
-You need Node.js 22 or newer and at least one supported CLI installed:
+All Code requires Node.js 22 or newer and at least one supported agent:
 
 - [Claude Code](https://github.com/anthropics/claude-code)
 - [OpenCode](https://github.com/anomalyco/opencode)
 - [Codex](https://github.com/openai/codex)
 
-```powershell
+```bash
 git clone https://github.com/itsramananshul/allcode.git
 cd allcode
 npm install
-npm run check
 npm link
+```
+
+Run it from a project directory:
+
+```bash
+cd path/to/project
 allcode
 ```
 
-Your existing CLI logins remain where those CLIs store them. All Code does not ask for or persist API keys.
+## Use
 
-## Inside All Code
+Type a request as usual. All Code sends it to the active agent.
 
 ```text
-/agent              choose Claude Code, OpenCode, or Codex
-/agent opencode     switch directly to OpenCode
-/model              browse models for the active agent
-/model MODEL_ID     select an exact native model ID
-/models             list models from every installed agent
-/status             show the active route and saved session
-/clear              redraw the workspace
-/help               show local commands
-/exit               exit
+› find the cause of the failing authentication test
 ```
 
-Text and unrecognized slash commands are sent to the active backend. A provider command therefore runs only when that provider supports the same command in non-interactive mode; All Code's local commands always take precedence.
+Change agents without leaving the session:
 
-## Direct and delegated execution
+```text
+› /agent codex
+› review the current diff
 
-Run a single task without opening the interface:
-
-```powershell
-allcode run opencode --model opencode/big-pickle "Inspect the failing tests"
-allcode run codex "Review the current diff"
-allcode run claude "Plan the next implementation step"
+› /agent claude
+› apply the review and run the tests
 ```
 
-The same adapters power the MCP broker. When an active agent calls `start_task`, the target CLI really performs the work and returns its native result. The current agent remains responsible for integrating that result.
+Choose a model from the active agent:
+
+```text
+› /model
+› /model opencode/big-pickle
+```
+
+List models from OpenCode and Codex alongside All Code's Claude aliases:
+
+```bash
+allcode models
+```
+
+All Code remembers the selected agent, one model per agent, native session IDs, and the shared conversation in `.allcode/session.json`.
+
+## Agents
+
+| Agent | Route | Model source |
+| --- | --- | --- |
+| Claude Code | `claude` | Claude account aliases and model IDs |
+| OpenCode | `opencode` | `opencode models`, including configured providers and the OpenCode Go catalog |
+| Codex | `codex` | Codex app-server model catalog |
+
+Check the local installation:
+
+```bash
+allcode agents
+```
+
+All Code also gives the active agent an MCP broker. It can delegate a task to either of the other agents, wait for the result, and incorporate that result into the current job.
+
+## Commands
+
+| Command | Action |
+| --- | --- |
+| `/agent` | Open the agent picker |
+| `/agent <name>` | Switch to Claude Code, OpenCode, or Codex |
+| `/model` | Open the model picker for the active agent |
+| `/model <id>` | Select an exact model ID |
+| `/models` | Show all discovered model catalogs |
+| `/status` | Show the current route and session |
+| `/clear` | Redraw the All Code workspace |
+| `/help` | Show commands |
+| `/exit` | Exit All Code |
+
+Shell commands and configuration are covered in the [command reference](docs/commands.md).
 
 ## Documentation
 
 - [Getting started](docs/getting-started.md)
-- [Commands](docs/commands.md)
+- [Command reference](docs/commands.md)
+- [Agents and models](docs/agents-and-models.md)
 - [Architecture](docs/architecture.md)
-- [Models and routing](docs/model-routing.md)
 - [Security](docs/security.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Contributing](CONTRIBUTING.md)
 
-## Project status
+## Development
 
-All Code is an early release. Routing, context handoff, model discovery, bounded process execution, and MCP delegation are implemented; automated tests cover the core modules, while release CI builds on Windows, macOS, and Linux. Direct re-export of a proprietary agent's internal tool schema is intentionally not claimed: cross-agent capabilities are exposed through delegation, while each target executes with its own native tools.
+```bash
+npm install
+npm run check
+```
+
+The test matrix runs on Windows, macOS, and Linux with Node.js 22 and 24.
 
 ## License
 

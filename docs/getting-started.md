@@ -1,61 +1,90 @@
 # Getting started
 
-## Requirements
+## Before you install
 
-- Node.js 22 or newer
-- npm
-- Claude Code, OpenCode, or Codex installed locally
-- A valid login or provider configuration for every CLI you plan to use
+Install Node.js 22 or newer and one or more of the supported coding agents:
 
-All Code uses the installed executables. It does not include models, accounts, subscriptions, or provider credits.
+- [Claude Code](https://github.com/anthropics/claude-code)
+- [OpenCode](https://github.com/anomalyco/opencode)
+- [Codex](https://github.com/openai/codex)
 
-## Install from source
+Sign in through each agent's own CLI. All Code uses those existing sessions.
 
-```powershell
+## Install All Code
+
+```bash
 git clone https://github.com/itsramananshul/allcode.git
 cd allcode
 npm install
-npm run check
 npm link
 ```
 
-`npm link` installs the `allcode` command from your checkout. Run `npm unlink -g allcode` to remove that link later.
+Confirm that All Code can find the agents:
 
-## Verify agent availability
-
-```powershell
+```bash
 allcode agents
 ```
 
-The JSON output reports the resolved path or a useful error for Claude Code, OpenCode, and Codex. To override a launcher path, set one of:
+Each entry reports the executable path or the reason it could not be resolved.
 
-```text
-ALL_CODE_CLAUDE_COMMAND
-ALL_CODE_OPENCODE_COMMAND
-ALL_CODE_CODEX_COMMAND
-```
+## Open a workspace
 
-## Start a workspace
+Run All Code from the repository you want to work on:
 
-Run `allcode` from the project you want the agents to edit:
-
-```powershell
-cd C:\path\to\your\project
+```bash
+cd path/to/project
 allcode
 ```
 
-All Code creates `.allcode/session.json` in that project. Add `.allcode/` to the project's ignore file if it is not already ignored.
+Open with a specific agent:
 
-To force the initial route:
-
-```powershell
+```bash
 allcode --agent claude
 allcode --agent opencode
 allcode --agent codex
 ```
 
-Without `--agent`, All Code restores the saved active agent when a session exists and otherwise starts with OpenCode.
+Without `--agent`, an existing workspace resumes its last active agent. A new workspace starts with OpenCode.
 
-## Authentication
+## Start a task
 
-Authenticate each CLI using its official flow before selecting it in All Code. All Code neither reads nor translates subscription credentials. This separation is important: an OpenCode model can be used only through an OpenCode provider route that your OpenCode installation is allowed to access.
+Enter a request at the prompt:
+
+```text
+› trace the request path for POST /api/login and explain the failure
+```
+
+Switch agents at any point:
+
+```text
+› /agent codex
+› review the proposed fix before it is applied
+```
+
+The next agent receives the shared conversation and continues in the same working directory.
+
+## Select a model
+
+```text
+› /model
+```
+
+The picker reads the active agent's catalog. You can also enter an exact native model ID:
+
+```text
+› /model opencode/big-pickle
+```
+
+All Code saves one model selection per agent.
+
+## Session files
+
+Workspace state is stored in:
+
+```text
+.allcode/session.json
+```
+
+Add `.allcode/` to the project's ignore file. Removing the directory starts a fresh All Code session without signing out any agent.
+
+Continue with the [command reference](commands.md) or read [Agents and models](agents-and-models.md).

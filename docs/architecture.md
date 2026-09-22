@@ -1,55 +1,68 @@
 # Architecture
 
-All Code separates the stable user interface from the engines that perform work.
+All Code is a terminal interface over three CLI adapters.
 
 ```text
-                         ┌──────────────────────┐
-                         │  All Code terminal   │
-                         │  commands + context  │
-                         └──────────┬───────────┘
-                                    │ selected route
-                 ┌──────────────────┼──────────────────┐
-                 ▼                  ▼                  ▼
-          ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-          │ Claude Code │    │  OpenCode   │    │    Codex    │
-          │   adapter   │    │   adapter   │    │   adapter   │
-          └──────┬──────┘    └──────┬──────┘    └──────┬──────┘
-                 └──────────────────┼──────────────────┘
-                                    ▼
-                         ┌──────────────────────┐
-                         │ All Code MCP broker  │
-                         │ bounded delegation   │
-                         └──────────────────────┘
+┌─────────────────────────────────────────────┐
+│                 All Code                    │
+│  prompt loop · slash commands · session     │
+└─────────────────────┬───────────────────────┘
+                      │ active route
+          ┌───────────┼───────────┐
+          ▼           ▼           ▼
+    Claude Code    OpenCode     Codex
+       adapter      adapter     adapter
+          └───────────┼───────────┘
+                      │
+                      ▼
+              All Code MCP server
+                 delegated tasks
 ```
 
-## Components
+## Prompt loop
 
-- `src/allcode.ts` owns the interface and local slash commands.
-- `src/session.ts` persists the active route, models, native session IDs, delivery cursors, and shared messages.
-- `src/adapters.ts` converts a neutral task into each CLI's supported non-interactive invocation.
-- `src/models.ts` discovers live provider catalogs and parses their native results.
-- `src/mcp-server.ts` exposes cross-agent task tools.
-- `src/task-manager.ts` tracks delegated work and cancellation.
-- `src/security.ts` constrains delegated working directories.
+`src/allcode.ts` owns the terminal. It handles All Code slash commands locally and sends other input through `runAgent`.
 
-## Context handoff
+## Adapters
 
-Every successful or failed turn is stored in `.allcode/session.json`. Each agent has a delivery cursor. When an agent becomes active, it receives only the conversation it has not seen, followed by the current request. This keeps switches useful without resending the entire transcript on every turn.
+`src/adapters.ts` builds a non-interactive invocation for each CLI:
 
-The 48,000-character handoff bound is a transport guard, not a model token count. Each native agent still controls its own context compaction and limits.
+- Claude Code uses print mode with JSON output.
+- OpenCode uses `opencode run --format json`.
+- Codex uses `codex exec --json` with the `workspace-write` sandbox.
 
-## Delegation
+`src/parsers.ts` extracts final text and native session IDs from each event stream.
 
-Each headless adapter injects the All Code MCP broker into the target process. The selected agent can call:
+## Sessions
 
-- `list_agents`
-- `start_task`
-- `task_status`
-- `list_tasks`
-- `cancel_task`
+`src/session.ts` stores workspace state in `.allcode/session.json`:
 
-The target agent runs with its own native tools. The broker returns its result to the caller; it does not pretend that one vendor's private tools belong to another vendor.
+- active agent
+- selected model per agent
+- native session ID per agent
+- shared messages
+- delivery cursor per agent
+
+Writes use a temporary file followed by an atomic rename.
+
+## Models
+
+`src/models.ts` reads native catalogs. Catalog requests run independently, so a missing agent does not block results from the others. Codex app-server discovery has a 12-second timeout.
+
+## Delegated tasks
+
+`src/mcp-server.ts` exposes task tools. `src/task-manager.ts` runs delegated work asynchronously and records its state as queued, running, completed, failed, or cancelled.
+
+Every child adapter receives the MCP server configuration. This lets an agent send a bounded subtask through another adapter.
+
+## Processes
+
+`src/process-runner.ts` starts executables directly, captures bounded output, handles cancellation, and terminates the child process tree on timeout. Commands are passed as argument arrays rather than shell strings.
 
 ## Adding an agent
 
-Implement `AgentAdapter`, register it in `src/adapters.ts`, add its name to `src/types.ts`, provide model discovery, and add invocation/parser tests. Keep authentication and permission decisions inside the native CLI rather than inventing an All Code credential format.
+1. Add the route name to `src/types.ts`.
+2. Implement `AgentAdapter` in `src/adapters.ts`.
+3. Add native model discovery in `src/models.ts`.
+4. Add event parsing and invocation tests.
+5. Add the route to the picker and command reference.

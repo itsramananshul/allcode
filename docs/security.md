@@ -1,29 +1,38 @@
-# Security model
+# Security
 
-All Code launches coding agents that can modify files and run commands. Treat every enabled agent and MCP server as code with your user account's authority.
+All Code starts coding agents with access to the current workspace. Review the permissions configured in each agent before using it on sensitive repositories.
 
-## Boundaries
+## Workspace boundary
 
-- Credentials remain in each native CLI's storage. All Code does not copy, exchange, log, or emulate them.
-- Child processes are spawned directly without an intermediary command shell.
-- Codex uses its `workspace-write` sandbox.
-- Claude Code uses `acceptEdits`; All Code does not select bypass-permission mode.
-- OpenCode retains the permissions configured in OpenCode.
-- Delegated task directories must resolve beneath `ALL_CODE_ALLOWED_ROOTS`.
-- Delegation depth defaults to three to stop accidental agent-to-agent loops.
-- Captured subprocess output is bounded to eight MiB.
-
-## Recommended setup
-
-Set a narrow root before exposing the broker manually:
+Delegated tasks are restricted by `ALL_CODE_ALLOWED_ROOTS`. Paths are resolved with `realpath` before the boundary check, and Windows paths are compared case-insensitively.
 
 ```powershell
-$env:ALL_CODE_ALLOWED_ROOTS = "C:\work\my-project"
+$env:ALL_CODE_ALLOWED_ROOTS = "C:\work\project"
 allcode
 ```
 
-Do not place API keys in prompts. Use the official credential mechanism for the relevant CLI. Review third-party MCP servers before enabling them, and do not run All Code in a directory containing secrets an agent should not inspect.
+Use `;` between roots on Windows and `:` on macOS or Linux.
 
-## Reporting a vulnerability
+## Agent permissions
 
-See [SECURITY.md](../SECURITY.md). Do not open a public issue containing exploit details, credentials, or private logs.
+- Claude Code runs in `acceptEdits` mode. Operations that still require a prompt are denied in non-interactive execution.
+- OpenCode uses the permissions in its OpenCode configuration.
+- Codex runs with the `workspace-write` sandbox.
+
+All Code does not select bypass-permission modes.
+
+## Credentials
+
+Authentication stays in the native CLI stores. Prompts and task results may still contain sensitive information, so protect `.allcode/session.json` and do not commit it.
+
+## Delegation depth
+
+Nested agent calls stop at `ALL_CODE_MAX_DEPTH`, which defaults to `3`. The depth and current host are passed to child processes through `ALL_CODE_DEPTH` and `ALL_CODE_HOST`.
+
+## Process execution
+
+All Code uses direct process spawning. Model IDs and session IDs are validated before they become command arguments. Captured output is limited to eight MiB per process.
+
+## Vulnerability reports
+
+Follow the private reporting instructions in [SECURITY.md](../SECURITY.md).

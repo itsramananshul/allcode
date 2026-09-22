@@ -1,0 +1,15 @@
+# All Code documentation
+
+## Start here
+
+- [Getting started](getting-started.md) — install All Code and open the first workspace
+- [Command reference](commands.md) — terminal commands, slash commands, and environment variables
+- [Agents and models](agents-and-models.md) — agent switching, model discovery, and context handoff
+
+## Internals
+
+- [Architecture](architecture.md) — interface, adapters, sessions, and delegation
+- [Security](security.md) — process permissions and workspace boundaries
+- [Troubleshooting](troubleshooting.md) — installation, authentication, model, and context problems
+
+For development setup and pull requests, see [CONTRIBUTING.md](../CONTRIBUTING.md).
