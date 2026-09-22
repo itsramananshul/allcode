@@ -41,9 +41,10 @@ async function main(): Promise<void> {
   const command = args[0]?.startsWith("-") ? "ui" : (args.shift() ?? "ui")
   if (command === "ui") {
     const cwd = resolve(takeOption(args, "--cwd") ?? process.cwd())
-    const selected = takeOption(args, "--agent") ?? "opencode"
+    const requested = takeOption(args, "--agent")
+    const selected = requested ?? "opencode"
     if (!isAgentName(selected)) usage()
-    await startAllCode(cwd, selected)
+    await startAllCode(cwd, selected, requested !== undefined)
     return
   }
   if (command === "native") {

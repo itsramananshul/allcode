@@ -1,4 +1,5 @@
 import { extractFinalText, extractSessionId, parseJsonEvents } from "./parsers.js"
+import { delimiter } from "node:path"
 import { fileURLToPath } from "node:url"
 import type { AgentAdapter, AgentName, AgentResult, Invocation, ProcessResult, RunRequest } from "./types.js"
 
@@ -12,10 +13,13 @@ function childEnv(agent: AgentName, cwd: string): NodeJS.ProcessEnv {
   const depth = Number.parseInt(process.env.ALL_CODE_DEPTH ?? "0", 10) || 0
   const maxDepth = Number.parseInt(process.env.ALL_CODE_MAX_DEPTH ?? "3", 10) || 3
   if (depth >= maxDepth) throw new Error(`Delegation depth ${depth} reached the configured maximum ${maxDepth}`)
+  const configuredRoots = (process.env.ALL_CODE_ALLOWED_ROOTS ?? "").split(delimiter).filter(Boolean)
+  const allowedRoots = [...new Set([...configuredRoots, cwd])].join(delimiter)
   return {
     ALL_CODE_DEPTH: String(depth + 1),
+    ALL_CODE_MAX_DEPTH: String(maxDepth),
     ALL_CODE_HOST: agent,
-    ALL_CODE_ALLOWED_ROOTS: cwd,
+    ALL_CODE_ALLOWED_ROOTS: allowedRoots,
   }
 }
 
@@ -84,9 +88,14 @@ export class OpenCodeAdapter extends BaseAdapter {
     if (request.sessionId) args.push("--session", request.sessionId)
     args.push(request.prompt)
     const nextEnv = childEnv(this.name, request.cwd)
-    const existing = process.env.OPENCODE_CONFIG_CONTENT
-      ? JSON.parse(process.env.OPENCODE_CONFIG_CONTENT) as { mcp?: Record<string, unknown>; [key: string]: unknown }
-      : {}
+    let existing: { mcp?: Record<string, unknown>; [key: string]: unknown } = {}
+    if (process.env.OPENCODE_CONFIG_CONTENT) {
+      try {
+        existing = JSON.parse(process.env.OPENCODE_CONFIG_CONTENT) as typeof existing
+      } catch {
+        throw new Error("OPENCODE_CONFIG_CONTENT must contain valid JSON before All Code can add its MCP broker")
+      }
+    }
     const allCodeMcp = {
       type: "local",
       command: [process.execPath, bridgeCommand(), "mcp"],

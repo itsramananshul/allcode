@@ -88,6 +88,10 @@ export class SharedSession {
     this.save()
   }
 
+  recordFailure(agent: AgentName, prompt: string, error: string): void {
+    this.recordTurn(agent, prompt, `[All Code error from ${agent}] ${error}`)
+  }
+
   summary(): { messages: number; sessions: Partial<Record<AgentName, string>>; path: string } {
     return { messages: this.#state.messages.length, sessions: { ...this.#state.nativeSessions }, path: this.path }
   }

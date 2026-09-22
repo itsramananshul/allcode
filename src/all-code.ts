@@ -58,16 +58,19 @@ function printModels(models: ModelEntry[], limit = 40): void {
   if (models.length > limit) output.write(`${gray}  … ${models.length - limit} more; enter an exact model ID to select it.${reset}\n`)
 }
 
-async function chooseModel(rl: Interface, agent: AgentName): Promise<string | undefined> {
+async function chooseModel(rl: Interface, agent: AgentName, current: string | undefined): Promise<string | undefined> {
   output.write(`\n${gray}Discovering ${agentLabel(agent)} models…${reset}\n`)
   const catalog = await discoverModels(agent)
   if (catalog.error) output.write(`${gray}Catalog unavailable: ${catalog.error}${reset}\n`)
   if (catalog.models.length > 0) printModels(catalog.models)
-  const answer = (await rl.question(`${gray}Model number or exact ID (blank keeps default): ${reset}`)).trim()
-  if (!answer) return undefined
-  const index = Number.parseInt(answer, 10)
-  const selected = Number.isInteger(index) && index > 0 ? catalog.models[index - 1] : undefined
-  if (selected) return selected.id
+  const answer = (await rl.question(`${gray}Model number or exact ID (blank keeps current): ${reset}`)).trim()
+  if (!answer) return current
+  if (/^\d+$/.test(answer)) {
+    const selected = catalog.models[Number(answer) - 1]
+    if (selected) return selected.id
+    output.write(`${gray}No model exists at position ${answer}; kept ${current ?? "default"}.${reset}\n`)
+    return current
+  }
   return answer
 }
 
@@ -81,9 +84,10 @@ async function printAllModels(): Promise<void> {
   output.write("\n")
 }
 
-export async function startAllCode(cwd: string, initialAgent: AgentName = "opencode"): Promise<void> {
+export async function startAllCode(cwd: string, initialAgent: AgentName = "opencode", forceInitialAgent = false): Promise<void> {
   if (!input.isTTY || !output.isTTY) throw new Error("All Code requires an interactive terminal.")
   const shared = new SharedSession(cwd, initialAgent)
+  if (forceInitialAgent) shared.activeAgent = initialAgent
   let agent = shared.activeAgent
   let model = shared.model(agent)
   const rl = createInterface({ input, output, terminal: true })
@@ -116,7 +120,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         continue
       }
       if (command === "/model") {
-        model = parts.length > 0 ? parts.join(" ") : await chooseModel(rl, agent)
+        model = parts.length > 0 ? parts.join(" ") : await chooseModel(rl, agent, model)
         shared.setModel(agent, model)
         output.write(`${gray}Active model:${reset} ${white}${model ?? "default"}${reset}\n`)
         continue
@@ -141,7 +145,9 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         output.write(`\r\x1b[2K${gray}${agentLabel(agent)} · ${((Date.now() - started) / 1000).toFixed(1)}s${reset}\n\n`)
         output.write(`${result.finalText.trim()}\n\n`)
       } catch (error) {
-        output.write(`\r\x1b[2K${white}Error:${reset} ${error instanceof Error ? error.message : String(error)}\n\n`)
+        const message = error instanceof Error ? error.message : String(error)
+        shared.recordFailure(agent, line, message)
+        output.write(`\r\x1b[2K${white}Error:${reset} ${message}\n\n`)
       } finally {
         clearInterval(timer)
       }

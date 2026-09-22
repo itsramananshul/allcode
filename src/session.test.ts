@@ -13,4 +13,12 @@ describe("shared agent context", () => {
     expect(session.promptFor("claude", "Continue")).toBe("Continue")
     expect(JSON.parse(readFileSync(session.path, "utf8")).messages).toHaveLength(2)
   })
+
+  it("shares a failed turn with the next agent without redelivering it to the failing agent", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "all-code-"))
+    const session = new SharedSession(cwd, "opencode")
+    session.recordFailure("opencode", "Inspect the project", "rate limited")
+    expect(session.promptFor("opencode", "Retry")).toBe("Retry")
+    expect(session.promptFor("codex", "Continue")).toContain("rate limited")
+  })
 })

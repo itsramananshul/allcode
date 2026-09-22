@@ -40,7 +40,7 @@ export function parseOpenCodeModels(output: string): ModelEntry[] {
       agent: "opencode" as const,
       id,
       label: id,
-      isFree: id.includes("-free") || id === "opencode/big-pickle" || id.startsWith("opencode/"),
+      isFree: id === "opencode/big-pickle" || /(?:^|[-/:])free(?:$|[-/:])/i.test(id),
     }))
 }
 
@@ -76,26 +76,41 @@ async function discoverCodexModels(): Promise<ModelEntry[]> {
     windowsHide: true,
     stdio: ["pipe", "pipe", "pipe"],
   })
-  const responses = new Map<number, (value: unknown) => void>()
-  const errors = new Map<number, (error: Error) => void>()
+  const pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>()
+  let terminalError: Error | undefined
+  const failPending = (error: Error): void => {
+    terminalError = error
+    for (const request of pending.values()) request.reject(error)
+    pending.clear()
+  }
+  child.once("error", (error) => failPending(error))
+  child.once("exit", (code, signal) => {
+    if (pending.size > 0) failPending(new Error(`Codex app-server exited before replying (${signal ?? code ?? "unknown"})`))
+  })
   const lines = createInterface({ input: child.stdout })
   lines.on("line", (line) => {
     try {
       const message = JSON.parse(line) as { id?: number; result?: unknown; error?: { message?: string } }
       if (typeof message.id !== "number") return
-      if (message.error) errors.get(message.id)?.(new Error(message.error.message ?? "Codex app-server request failed"))
-      else responses.get(message.id)?.(message.result)
-      responses.delete(message.id)
-      errors.delete(message.id)
+      const request = pending.get(message.id)
+      if (!request) return
+      pending.delete(message.id)
+      if (message.error) request.reject(new Error(message.error.message ?? "Codex app-server request failed"))
+      else request.resolve(message.result)
     } catch { /* app-server diagnostics are not protocol messages */ }
   })
 
   const request = (id: number, method: string, params: unknown): Promise<unknown> => new Promise((resolve, reject) => {
-    responses.set(id, resolve)
-    errors.set(id, reject)
-    child.stdin.write(`${JSON.stringify({ method, id, params })}\n`)
+    if (terminalError) { reject(terminalError); return }
+    pending.set(id, { resolve, reject })
+    child.stdin.write(`${JSON.stringify({ method, id, params })}\n`, (error) => {
+      if (error && pending.delete(id)) reject(error)
+    })
   })
-  const timeout = setTimeout(() => child.kill(), 12_000)
+  const timeout = setTimeout(() => {
+    failPending(new Error("Codex model discovery timed out after 12 seconds"))
+    child.kill()
+  }, 12_000)
   try {
     await request(1, "initialize", {
       clientInfo: { name: "all-code", title: "All Code", version: "0.1.0" },
