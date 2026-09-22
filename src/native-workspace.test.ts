@@ -36,12 +36,16 @@ describe("/agent interception", () => {
 describe("native launch environment", () => {
   it("provides a capable terminal type to native TUIs", () => {
     const previous = process.env.TERM
+    const previousCommand = process.env.ALL_CODE_CODEX_COMMAND
     process.env.TERM = "dumb"
+    process.env.ALL_CODE_CODEX_COMMAND = process.execPath
     try {
       expect(nativeLaunch("codex", process.cwd()).env.TERM).toBe("xterm-256color")
     } finally {
       if (previous === undefined) delete process.env.TERM
       else process.env.TERM = previous
+      if (previousCommand === undefined) delete process.env.ALL_CODE_CODEX_COMMAND
+      else process.env.ALL_CODE_CODEX_COMMAND = previousCommand
     }
   })
 })

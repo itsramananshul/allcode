@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync } from "node:fs"
+import { mkdtempSync, mkdirSync, realpathSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
@@ -13,8 +13,8 @@ describe("workspace boundaries", () => {
     mkdirSync(nested, { recursive: true })
     mkdirSync(sibling)
 
-    expect(validateWorkspace(root, [root])).toBe(root)
-    expect(validateWorkspace(nested, [root])).toBe(nested)
+    expect(validateWorkspace(root, [root])).toBe(realpathSync(root))
+    expect(validateWorkspace(nested, [root])).toBe(realpathSync(nested))
     expect(() => validateWorkspace(sibling, [root])).toThrow("outside ALL_CODE_ALLOWED_ROOTS")
   })
 
