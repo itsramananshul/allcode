@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible All Code problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include API keys, tokens, private source code, or unredacted logs.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the behavior and what you expected instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: All Code version or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Active agent
+      options: [Claude Code, OpenCode, Codex, Not agent-specific]
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and Node.js version
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted output
+      render: shell
