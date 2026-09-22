@@ -3,9 +3,9 @@ import { existsSync, readFileSync } from "node:fs"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 
 const overrides: Record<string, string> = {
-  claude: "AGENT_WORKBENCH_CLAUDE_COMMAND",
-  opencode: "AGENT_WORKBENCH_OPENCODE_COMMAND",
-  codex: "AGENT_WORKBENCH_CODEX_COMMAND",
+  claude: "ALL_CODE_CLAUDE_COMMAND",
+  opencode: "ALL_CODE_OPENCODE_COMMAND",
+  codex: "ALL_CODE_CODEX_COMMAND",
 }
 
 function executableFromNpmShim(shim: string): string | undefined {

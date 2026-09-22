@@ -25,7 +25,7 @@ function publicTask(task: TaskRecord) {
 
 export async function startMcpServer(): Promise<void> {
   const server = new McpServer(
-    { name: "agent-workbench", version: "0.1.0" },
+    { name: "all-code", version: "0.1.0" },
     {
       instructions: "You are the selected lead agent. Keep ownership of the user's task, but proactively choose Claude Code, OpenCode, or Codex when another engine is better suited to a subtask. Use list_agents to inspect availability, start_task to delegate, and task_status to collect the result before integrating it. Each target performs work with its own native models and full native tool set while retaining its own authentication, subscriptions, permissions, and session state. Do not delegate back to the current host unless the user explicitly requests it.",
     },
@@ -35,7 +35,7 @@ export async function startMcpServer(): Promise<void> {
     description: "List the locally available coding-agent engines.",
     inputSchema: {},
   }, async () => response({
-    host: process.env.AGENT_WORKBENCH_HOST ?? "unknown",
+    host: process.env.ALL_CODE_HOST ?? "unknown",
     agents: listAdapters().map((adapter) => ({
       name: adapter.name,
       description: adapter.description,

@@ -1,11 +1,20 @@
 {
-  "name": "agent-workbench",
+  "name": "all-code",
   "version": "0.1.0",
-  "private": true,
-  "description": "A local, provider-neutral bridge between Claude Code, OpenCode, and Codex.",
+  "description": "One terminal workspace for Claude Code, OpenCode, and Codex.",
+  "license": "MIT",
+  "homepage": "https://github.com/itsramananshul/all-code#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itsramananshul/all-code.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itsramananshul/all-code/issues"
+  },
+  "keywords": ["ai", "cli", "coding-agent", "claude-code", "opencode", "codex", "mcp"],
   "type": "module",
   "bin": {
-    "agent-workbench": "dist/cli.js"
+    "allcode": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -29,6 +38,7 @@
   "engines": {
     "node": ">=22"
   },
+  "files": ["dist", "assets", "README.md", "LICENSE"],
   "allowScripts": {
     "node-pty@1.1.0": true,
     "esbuild@0.28.2": true

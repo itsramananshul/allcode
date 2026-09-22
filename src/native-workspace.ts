@@ -90,9 +90,9 @@ function bridgeCommand(): string {
 
 function mcpEnvironment(agent: AgentName, cwd: string): Record<string, string> {
   return {
-    AGENT_WORKBENCH_HOST: agent,
-    AGENT_WORKBENCH_ALLOWED_ROOTS: cwd,
-    AGENT_WORKBENCH_DEPTH: process.env.AGENT_WORKBENCH_DEPTH ?? "0",
+    ALL_CODE_HOST: agent,
+    ALL_CODE_ALLOWED_ROOTS: cwd,
+    ALL_CODE_DEPTH: process.env.ALL_CODE_DEPTH ?? "0",
   }
 }
 
@@ -106,7 +106,7 @@ export function nativeLaunch(agent: AgentName, cwd: string): { command: string; 
   if (agent === "claude") {
     const config = JSON.stringify({
       mcpServers: {
-        "agent-workbench": {
+        "all-code": {
           type: "stdio",
           command: process.execPath,
           args: [cli, "mcp"],
@@ -120,7 +120,7 @@ export function nativeLaunch(agent: AgentName, cwd: string): { command: string; 
   if (agent === "opencode") {
     const injected = {
       mcp: {
-        "agent-workbench": {
+        "all-code": {
           type: "local",
           command: [process.execPath, cli, "mcp"],
           enabled: true,
@@ -140,11 +140,11 @@ export function nativeLaunch(agent: AgentName, cwd: string): { command: string; 
   }
 
   const args = [
-    "-c", `mcp_servers.agent-workbench.command=${JSON.stringify(process.execPath)}`,
-    "-c", `mcp_servers.agent-workbench.args=${JSON.stringify([cli, "mcp"])}`,
-    "-c", `mcp_servers.agent-workbench.env.AGENT_WORKBENCH_HOST=${JSON.stringify(agent)}`,
-    "-c", `mcp_servers.agent-workbench.env.AGENT_WORKBENCH_ALLOWED_ROOTS=${JSON.stringify(cwd)}`,
-    "-c", `mcp_servers.agent-workbench.env.AGENT_WORKBENCH_DEPTH=${JSON.stringify(bridgeEnv.AGENT_WORKBENCH_DEPTH)}`,
+    "-c", `mcp_servers.all-code.command=${JSON.stringify(process.execPath)}`,
+    "-c", `mcp_servers.all-code.args=${JSON.stringify([cli, "mcp"])}`,
+    "-c", `mcp_servers.all-code.env.ALL_CODE_HOST=${JSON.stringify(agent)}`,
+    "-c", `mcp_servers.all-code.env.ALL_CODE_ALLOWED_ROOTS=${JSON.stringify(cwd)}`,
+    "-c", `mcp_servers.all-code.env.ALL_CODE_DEPTH=${JSON.stringify(bridgeEnv.ALL_CODE_DEPTH)}`,
   ]
   return { command, args, env }
 }
@@ -181,7 +181,7 @@ export async function startNativeWorkspace(initialAgent: AgentName, cwdInput: st
     }
     launched.add(agent)
     const childGeneration = ++generation
-    process.stdout.write(`\x1b]0;Agent Workbench — ${agent}\x07`)
+    process.stdout.write(`\x1b]0;All Code — ${agent}\x07`)
     child = pty.spawn(spec.command, spec.args, {
       name: spec.env.TERM,
       cols: process.stdout.columns ?? 120,

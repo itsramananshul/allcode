@@ -1,24 +1,28 @@
 #!/usr/bin/env node
 import { resolve } from "node:path"
+import { startAllCode } from "./all-code.js"
 import { executableStatus } from "./executable.js"
 import { startMcpServer } from "./mcp-server.js"
+import { discoverAllModels, discoverModels } from "./models.js"
 import { isAgentName, startNativeWorkspace } from "./native-workspace.js"
 import { runAgent } from "./runner.js"
 import { agentNames, type AgentName } from "./types.js"
 
 function usage(): never {
-  console.error(`agent-workbench
+  console.error(`allcode
 
 Commands:
-  workspace [--agent claude|opencode|codex] [--cwd PATH]
+  allcode [--agent claude|opencode|codex] [--cwd PATH]
+  allcode native [--agent claude|opencode|codex] [--cwd PATH]
   agents
+  models [claude|opencode|codex]
   run <claude|opencode|codex> [--cwd PATH] [--model ID] [--session ID] <prompt>
   mcp
 
 Environment:
-  AGENT_WORKBENCH_ALLOWED_ROOTS   Allowed MCP workspace roots (${process.platform === "win32" ? ";" : ":"}-separated)
-  AGENT_WORKBENCH_MAX_DEPTH       Maximum nested delegation depth (default: 3)
-  AGENT_WORKBENCH_*_COMMAND       Override an agent executable path
+  ALL_CODE_ALLOWED_ROOTS   Allowed MCP workspace roots (${process.platform === "win32" ? ";" : ":"}-separated)
+  ALL_CODE_MAX_DEPTH       Maximum nested delegation depth (default: 3)
+  ALL_CODE_*_COMMAND       Override an agent executable path
 `)
   process.exit(2)
 }
@@ -34,8 +38,15 @@ function takeOption(args: string[], name: string): string | undefined {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
-  const command = args[0]?.startsWith("-") ? "workspace" : (args.shift() ?? "workspace")
-  if (command === "workspace") {
+  const command = args[0]?.startsWith("-") ? "ui" : (args.shift() ?? "ui")
+  if (command === "ui") {
+    const cwd = resolve(takeOption(args, "--cwd") ?? process.cwd())
+    const selected = takeOption(args, "--agent") ?? "opencode"
+    if (!isAgentName(selected)) usage()
+    await startAllCode(cwd, selected)
+    return
+  }
+  if (command === "native") {
     const cwd = resolve(takeOption(args, "--cwd") ?? process.cwd())
     const selected = takeOption(args, "--agent") ?? "claude"
     if (!isAgentName(selected)) usage()
@@ -44,6 +55,13 @@ async function main(): Promise<void> {
   }
   if (command === "agents") {
     console.log(JSON.stringify(agentNames.map((name) => ({ name, ...executableStatus(name) })), null, 2))
+    return
+  }
+  if (command === "models") {
+    const requested = args.shift()
+    if (requested && !isAgentName(requested)) usage()
+    const catalogs = requested ? [await discoverModels(requested as AgentName)] : await discoverAllModels()
+    console.log(JSON.stringify(catalogs, null, 2))
     return
   }
   if (command === "mcp") {

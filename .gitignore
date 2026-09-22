@@ -1,7 +1,7 @@
 node_modules/
 dist/
 coverage/
-.agent-workbench/
+.all-code/
 .claude/
 upstream/
 *.log
