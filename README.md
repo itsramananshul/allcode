@@ -80,7 +80,7 @@ The same adapters power the MCP broker. When an active agent calls `start_task`,
 
 ## Project status
 
-All Code is an early release. The routing, context handoff, model discovery, process isolation, and MCP delegation paths are implemented and tested. Direct re-export of a proprietary agent's internal tool schema is intentionally not claimed: cross-agent capabilities are exposed through delegation, while each target executes with its own native tools.
+All Code is an early release. Routing, context handoff, model discovery, bounded process execution, and MCP delegation are implemented; automated tests cover the core modules, while release CI builds on Windows, macOS, and Linux. Direct re-export of a proprietary agent's internal tool schema is intentionally not claimed: cross-agent capabilities are exposed through delegation, while each target executes with its own native tools.
 
 ## License
 

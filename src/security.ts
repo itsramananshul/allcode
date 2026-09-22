@@ -16,7 +16,8 @@ export function allowedRoots(): string[] {
 export function validateWorkspace(cwd: string, roots = allowedRoots()): string {
   if (!existsSync(cwd) || !statSync(cwd).isDirectory()) throw new Error(`Workspace does not exist: ${cwd}`)
   const candidate = normalize(cwd)
-  const allowed = roots.some((root) => candidate === root || candidate.startsWith(root.endsWith(sep) ? root : `${root}${sep}`))
+  const allowed = roots.map(normalize)
+    .some((root) => candidate === root || candidate.startsWith(root.endsWith(sep) ? root : `${root}${sep}`))
   if (!allowed) throw new Error(`Workspace is outside ALL_CODE_ALLOWED_ROOTS: ${cwd}`)
   return realpathSync(resolve(cwd))
 }
