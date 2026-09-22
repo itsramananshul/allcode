@@ -1,15 +1,15 @@
 {
-  "name": "all-code",
+  "name": "allcode",
   "version": "0.1.0",
   "description": "One terminal workspace for Claude Code, OpenCode, and Codex.",
   "license": "MIT",
-  "homepage": "https://github.com/itsramananshul/all-code#readme",
+  "homepage": "https://github.com/itsramananshul/allcode#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/itsramananshul/all-code.git"
+    "url": "git+https://github.com/itsramananshul/allcode.git"
   },
   "bugs": {
-    "url": "https://github.com/itsramananshul/all-code/issues"
+    "url": "https://github.com/itsramananshul/allcode/issues"
   },
   "keywords": [
     "ai",
@@ -25,7 +25,7 @@
     "allcode": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
     "prepare": "npm run build",
     "dev": "tsx src/cli.ts",
     "start": "node dist/cli.js",

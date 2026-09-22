@@ -12,14 +12,14 @@ All Code uses the installed executables. It does not include models, accounts, s
 ## Install from source
 
 ```powershell
-git clone https://github.com/itsramananshul/all-code.git
-cd all-code
+git clone https://github.com/itsramananshul/allcode.git
+cd allcode
 npm install
 npm run check
 npm link
 ```
 
-`npm link` installs the `allcode` command from your checkout. Run `npm unlink -g all-code` to remove that link later.
+`npm link` installs the `allcode` command from your checkout. Run `npm unlink -g allcode` to remove that link later.
 
 ## Verify agent availability
 
@@ -44,7 +44,7 @@ cd C:\path\to\your\project
 allcode
 ```
 
-All Code creates `.all-code/session.json` in that project. Add `.all-code/` to the project's ignore file if it is not already ignored.
+All Code creates `.allcode/session.json` in that project. Add `.allcode/` to the project's ignore file if it is not already ignored.
 
 To force the initial route:
 

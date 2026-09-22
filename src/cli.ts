@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { resolve } from "node:path"
-import { startAllCode } from "./all-code.js"
+import { startAllCode } from "./allcode.js"
 import { executableStatus } from "./executable.js"
 import { startMcpServer } from "./mcp-server.js"
 import { discoverAllModels, discoverModels } from "./models.js"

@@ -30,7 +30,7 @@ function bridgeCommand(): string {
 function claudeBridge(agent: AgentName, cwd: string): string {
   return JSON.stringify({
     mcpServers: {
-      "all-code": {
+      allcode: {
         type: "stdio",
         command: process.execPath,
         args: [bridgeCommand(), "mcp"],
@@ -104,7 +104,7 @@ export class OpenCodeAdapter extends BaseAdapter {
     }
     nextEnv.OPENCODE_CONFIG_CONTENT = JSON.stringify({
       ...existing,
-      mcp: { ...existing.mcp, "all-code": allCodeMcp },
+      mcp: { ...existing.mcp, allcode: allCodeMcp },
     })
     return { command: executable, args, cwd: request.cwd, env: nextEnv }
   }
@@ -120,11 +120,11 @@ export class CodexAdapter extends BaseAdapter {
     const args = ["exec", "--json", "--sandbox", "workspace-write", "-C", request.cwd, "--skip-git-repo-check"]
     const nextEnv = childEnv(this.name, request.cwd)
     args.push(
-      "-c", `mcp_servers.all-code.command=${JSON.stringify(process.execPath)}`,
-      "-c", `mcp_servers.all-code.args=${JSON.stringify([bridgeCommand(), "mcp"])}`,
-      "-c", `mcp_servers.all-code.env.ALL_CODE_HOST=${JSON.stringify(this.name)}`,
-      "-c", `mcp_servers.all-code.env.ALL_CODE_ALLOWED_ROOTS=${JSON.stringify(request.cwd)}`,
-      "-c", `mcp_servers.all-code.env.ALL_CODE_DEPTH=${JSON.stringify(nextEnv.ALL_CODE_DEPTH)}`,
+      "-c", `mcp_servers.allcode.command=${JSON.stringify(process.execPath)}`,
+      "-c", `mcp_servers.allcode.args=${JSON.stringify([bridgeCommand(), "mcp"])}`,
+      "-c", `mcp_servers.allcode.env.ALL_CODE_HOST=${JSON.stringify(this.name)}`,
+      "-c", `mcp_servers.allcode.env.ALL_CODE_ALLOWED_ROOTS=${JSON.stringify(request.cwd)}`,
+      "-c", `mcp_servers.allcode.env.ALL_CODE_DEPTH=${JSON.stringify(nextEnv.ALL_CODE_DEPTH)}`,
     )
     if (request.model) args.push("--model", request.model)
     if (request.sessionId) args.push("resume", request.sessionId, "-")

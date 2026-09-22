@@ -37,8 +37,8 @@ The provider rejected the request. Wait, choose a different model available to t
 
 ## Context did not appear after switching
 
-Use `/status` and inspect the reported `.all-code/session.json`. All Code sends unseen All Code turns across agents; it cannot import private historical conversations created outside this workspace.
+Use `/status` and inspect the reported `.allcode/session.json`. All Code sends unseen All Code turns across agents; it cannot import private historical conversations created outside this workspace.
 
 ## Reset local context
 
-Exit All Code, back up `.all-code/session.json` if needed, then delete the `.all-code` directory in that project. This starts a fresh All Code session and does not sign out any native CLI.
+Exit All Code, back up `.allcode/session.json` if needed, then delete the `.allcode` directory in that project. This starts a fresh All Code session and does not sign out any native CLI.

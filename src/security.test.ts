@@ -6,7 +6,7 @@ import { validateWorkspace } from "./security.js"
 
 describe("workspace boundaries", () => {
   it("accepts a root and descendants but rejects sibling directories", () => {
-    const parent = mkdtempSync(join(tmpdir(), "all-code-security-"))
+    const parent = mkdtempSync(join(tmpdir(), "allcode-security-"))
     const root = join(parent, "root")
     const nested = join(root, "nested")
     const sibling = join(parent, "sibling")
@@ -19,7 +19,7 @@ describe("workspace boundaries", () => {
   })
 
   it("rejects missing workspaces", () => {
-    const root = mkdtempSync(join(tmpdir(), "all-code-security-"))
+    const root = mkdtempSync(join(tmpdir(), "allcode-security-"))
     expect(() => validateWorkspace(join(root, "missing"), [root])).toThrow("does not exist")
   })
 })

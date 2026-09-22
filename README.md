@@ -1,7 +1,7 @@
 # All Code
 
 <p align="center">
-  <img src="assets/all-code-mascot.png" alt="All Code mascot" width="220">
+  <img src="assets/allcode-mascot.png" alt="All Code mascot" width="220">
 </p>
 
 <p align="center"><strong>One terminal workspace. Every coding agent.</strong></p>
@@ -15,7 +15,7 @@ All Code does not proxy private APIs or copy credentials. Each task runs through
 - One `allcode` command and one consistent interface on Windows, macOS, and Linux.
 - `/agent claude`, `/agent opencode`, and `/agent codex` switch the active backend.
 - `/model` and `/models` discover models from installed CLIs instead of maintaining a stale hard-coded catalog.
-- Per-agent model and native session IDs persist in `.all-code/session.json`.
+- Per-agent model and native session IDs persist in `.allcode/session.json`.
 - Conversation turns are handed to an agent when it joins an existing workspace.
 - The active agent receives MCP tools for starting, checking, listing, and cancelling tasks in the other engines.
 - Delegated work is restricted to configured workspace roots and capped by a recursion limit.
@@ -30,8 +30,8 @@ You need Node.js 22 or newer and at least one supported CLI installed:
 - [Codex](https://github.com/openai/codex)
 
 ```powershell
-git clone https://github.com/itsramananshul/all-code.git
-cd all-code
+git clone https://github.com/itsramananshul/allcode.git
+cd allcode
 npm install
 npm run check
 npm link

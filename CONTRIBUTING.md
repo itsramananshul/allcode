@@ -28,4 +28,4 @@ npm run check
 npm pack --dry-run
 ```
 
-Describe the user-visible behavior, platforms tested, and any native CLI/version assumptions. Never commit `.all-code/`, credentials, generated logs, `node_modules/`, or the ignored `upstream/` reference clones.
+Describe the user-visible behavior, platforms tested, and any native CLI/version assumptions. Never commit `.allcode/`, credentials, generated logs, `node_modules/`, or the ignored `upstream/` reference clones.

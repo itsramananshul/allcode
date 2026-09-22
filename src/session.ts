@@ -32,7 +32,7 @@ export class SharedSession {
   #state: SessionState
 
   constructor(cwd: string, initialAgent: AgentName) {
-    const directory = join(cwd, ".all-code")
+    const directory = join(cwd, ".allcode")
     mkdirSync(directory, { recursive: true })
     this.path = join(directory, "session.json")
     this.#state = this.#load(initialAgent)

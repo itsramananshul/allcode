@@ -24,7 +24,7 @@ All Code separates the stable user interface from the engines that perform work.
 
 ## Components
 
-- `src/all-code.ts` owns the interface and local slash commands.
+- `src/allcode.ts` owns the interface and local slash commands.
 - `src/session.ts` persists the active route, models, native session IDs, delivery cursors, and shared messages.
 - `src/adapters.ts` converts a neutral task into each CLI's supported non-interactive invocation.
 - `src/models.ts` discovers live provider catalogs and parses their native results.
@@ -34,7 +34,7 @@ All Code separates the stable user interface from the engines that perform work.
 
 ## Context handoff
 
-Every successful or failed turn is stored in `.all-code/session.json`. Each agent has a delivery cursor. When an agent becomes active, it receives only the conversation it has not seen, followed by the current request. This keeps switches useful without resending the entire transcript on every turn.
+Every successful or failed turn is stored in `.allcode/session.json`. Each agent has a delivery cursor. When an agent becomes active, it receives only the conversation it has not seen, followed by the current request. This keeps switches useful without resending the entire transcript on every turn.
 
 The 48,000-character handoff bound is a transport guard, not a model token count. Each native agent still controls its own context compaction and limits.
 

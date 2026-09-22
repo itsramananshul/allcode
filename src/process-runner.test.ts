@@ -5,10 +5,10 @@ describe("bounded process execution", () => {
   it("captures output without using a command shell", async () => {
     const result = await runProcess({
       command: process.execPath,
-      args: ["-e", "process.stdout.write('all-code-ok')"],
+      args: ["-e", "process.stdout.write('allcode-ok')"],
       cwd: process.cwd(),
     }, 5_000)
-    expect(result).toMatchObject({ exitCode: 0, stdout: "all-code-ok", timedOut: false })
+    expect(result).toMatchObject({ exitCode: 0, stdout: "allcode-ok", timedOut: false })
   })
 
   it("marks a process that exceeds its timeout", async () => {

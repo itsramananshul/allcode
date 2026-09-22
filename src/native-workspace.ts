@@ -106,7 +106,7 @@ export function nativeLaunch(agent: AgentName, cwd: string): { command: string; 
   if (agent === "claude") {
     const config = JSON.stringify({
       mcpServers: {
-        "all-code": {
+        allcode: {
           type: "stdio",
           command: process.execPath,
           args: [cli, "mcp"],
@@ -120,7 +120,7 @@ export function nativeLaunch(agent: AgentName, cwd: string): { command: string; 
   if (agent === "opencode") {
     const injected = {
       mcp: {
-        "all-code": {
+        allcode: {
           type: "local",
           command: [process.execPath, cli, "mcp"],
           enabled: true,
@@ -140,11 +140,11 @@ export function nativeLaunch(agent: AgentName, cwd: string): { command: string; 
   }
 
   const args = [
-    "-c", `mcp_servers.all-code.command=${JSON.stringify(process.execPath)}`,
-    "-c", `mcp_servers.all-code.args=${JSON.stringify([cli, "mcp"])}`,
-    "-c", `mcp_servers.all-code.env.ALL_CODE_HOST=${JSON.stringify(agent)}`,
-    "-c", `mcp_servers.all-code.env.ALL_CODE_ALLOWED_ROOTS=${JSON.stringify(cwd)}`,
-    "-c", `mcp_servers.all-code.env.ALL_CODE_DEPTH=${JSON.stringify(bridgeEnv.ALL_CODE_DEPTH)}`,
+    "-c", `mcp_servers.allcode.command=${JSON.stringify(process.execPath)}`,
+    "-c", `mcp_servers.allcode.args=${JSON.stringify([cli, "mcp"])}`,
+    "-c", `mcp_servers.allcode.env.ALL_CODE_HOST=${JSON.stringify(agent)}`,
+    "-c", `mcp_servers.allcode.env.ALL_CODE_ALLOWED_ROOTS=${JSON.stringify(cwd)}`,
+    "-c", `mcp_servers.allcode.env.ALL_CODE_DEPTH=${JSON.stringify(bridgeEnv.ALL_CODE_DEPTH)}`,
   ]
   return { command, args, env }
 }

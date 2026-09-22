@@ -6,7 +6,7 @@ import { SharedSession } from "./session.js"
 
 describe("shared agent context", () => {
   it("hands unseen turns to a newly selected agent and persists them", () => {
-    const cwd = mkdtempSync(join(tmpdir(), "all-code-"))
+    const cwd = mkdtempSync(join(tmpdir(), "allcode-"))
     const session = new SharedSession(cwd, "claude")
     session.recordTurn("claude", "Find the bug", "The bug is in parser.ts")
     expect(session.promptFor("codex", "Fix it")).toContain("The bug is in parser.ts")
@@ -15,7 +15,7 @@ describe("shared agent context", () => {
   })
 
   it("shares a failed turn with the next agent without redelivering it to the failing agent", () => {
-    const cwd = mkdtempSync(join(tmpdir(), "all-code-"))
+    const cwd = mkdtempSync(join(tmpdir(), "allcode-"))
     const session = new SharedSession(cwd, "opencode")
     session.recordFailure("opencode", "Inspect the project", "rate limited")
     expect(session.promptFor("opencode", "Retry")).toBe("Retry")
