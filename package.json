@@ -1,0 +1,36 @@
+{
+  "name": "agent-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local, provider-neutral bridge between Claude Code, OpenCode, and Codex.",
+  "type": "module",
+  "bin": {
+    "agent-workbench": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "test": "vitest run --config vitest.config.ts",
+    "check": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "node-pty": "^1.1.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.2",
+    "@types/react": "^19.2.14",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2",
+    "vitest": "5.0.1"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "allowScripts": {
+    "node-pty@1.1.0": true,
+    "esbuild@0.28.2": true
+  }
+}

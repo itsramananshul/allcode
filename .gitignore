@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+.agent-workbench/
+.claude/
+upstream/
+*.log
