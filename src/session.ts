@@ -1,0 +1,94 @@
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
+import { join } from "node:path"
+import type { AgentName } from "./types.js"
+
+export interface SharedMessage {
+  role: "user" | "assistant"
+  content: string
+  agent?: AgentName
+  createdAt: string
+}
+
+interface SessionState {
+  version: 1
+  activeAgent: AgentName
+  models: Partial<Record<AgentName, string>>
+  nativeSessions: Partial<Record<AgentName, string>>
+  delivered: Partial<Record<AgentName, number>>
+  messages: SharedMessage[]
+}
+
+const defaultState = (agent: AgentName): SessionState => ({
+  version: 1,
+  activeAgent: agent,
+  models: {},
+  nativeSessions: {},
+  delivered: {},
+  messages: [],
+})
+
+export class SharedSession {
+  readonly path: string
+  #state: SessionState
+
+  constructor(cwd: string, initialAgent: AgentName) {
+    const directory = join(cwd, ".all-code")
+    mkdirSync(directory, { recursive: true })
+    this.path = join(directory, "session.json")
+    this.#state = this.#load(initialAgent)
+  }
+
+  #load(initialAgent: AgentName): SessionState {
+    if (!existsSync(this.path)) return defaultState(initialAgent)
+    try {
+      const value = JSON.parse(readFileSync(this.path, "utf8")) as SessionState
+      return value.version === 1 ? value : defaultState(initialAgent)
+    } catch {
+      return defaultState(initialAgent)
+    }
+  }
+
+  save(): void {
+    const temporary = `${this.path}.tmp`
+    writeFileSync(temporary, `${JSON.stringify(this.#state, null, 2)}\n`, "utf8")
+    renameSync(temporary, this.path)
+  }
+
+  get activeAgent(): AgentName { return this.#state.activeAgent }
+  set activeAgent(value: AgentName) { this.#state.activeAgent = value; this.save() }
+  model(agent: AgentName): string | undefined { return this.#state.models[agent] }
+  setModel(agent: AgentName, value: string | undefined): void {
+    if (value) this.#state.models[agent] = value
+    else delete this.#state.models[agent]
+    this.save()
+  }
+  nativeSession(agent: AgentName): string | undefined { return this.#state.nativeSessions[agent] }
+  setNativeSession(agent: AgentName, value: string): void {
+    this.#state.nativeSessions[agent] = value
+    this.save()
+  }
+
+  promptFor(agent: AgentName, prompt: string): string {
+    const start = this.#state.delivered[agent] ?? 0
+    const unseen = this.#state.messages.slice(start)
+    if (unseen.length === 0) return prompt
+    const transcript = unseen.map((message) => {
+      const speaker = message.role === "user" ? "User" : `Assistant (${message.agent ?? "unknown"})`
+      return `${speaker}: ${message.content}`
+    }).join("\n\n")
+    const bounded = transcript.slice(-48_000)
+    return `[All Code shared context]\nThe following conversation happened in this workspace while another coding agent may have been active. Continue from it without repeating completed work.\n\n${bounded}\n\n[Current request]\n${prompt}`
+  }
+
+  recordTurn(agent: AgentName, prompt: string, response: string): void {
+    const createdAt = new Date().toISOString()
+    this.#state.messages.push({ role: "user", content: prompt, createdAt })
+    this.#state.messages.push({ role: "assistant", content: response, agent, createdAt })
+    this.#state.delivered[agent] = this.#state.messages.length
+    this.save()
+  }
+
+  summary(): { messages: number; sessions: Partial<Record<AgentName, string>>; path: string } {
+    return { messages: this.#state.messages.length, sessions: { ...this.#state.nativeSessions }, path: this.path }
+  }
+}
