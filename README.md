@@ -1,148 +1,87 @@
-# Agent Workbench
+# All Code
 
-Agent Workbench is a local, provider-neutral bridge between **Claude Code**, **OpenCode**, and **Codex**.
+<p align="center">
+  <img src="assets/all-code-mascot.png" alt="All Code mascot" width="220">
+</p>
 
-It does not impersonate one client as another and does not copy credentials between products. Each delegated task genuinely runs in the selected agent, using that agent's own account, subscriptions, model catalog, tools, permissions, and session state.
+<p align="center"><strong>One terminal workspace. Every coding agent.</strong></p>
 
-## Architecture
+All Code is a local, open-source terminal workspace for **Claude Code**, **OpenCode**, and **Codex**. It gives you one stable monochrome interface, lets you switch the active execution engine with `/agent`, discovers each engine's models, carries conversation context across switches, and gives every engine an MCP broker for delegating work to the other two.
 
-```text
-              ┌─────────────────────────────┐
-              │ The agent the user opened   │
-              │ Claude / OpenCode / Codex   │
-              └──────────────┬──────────────┘
-                             │ MCP tool call
-                             ▼
-              ┌─────────────────────────────┐
-              │ Agent Workbench broker      │
-              │ tasks, limits, routing      │
-              └───────┬─────────┬───────────┘
-                      │         │
-          ┌───────────▼──┐  ┌──▼──────────┐  ┌───────────────┐
-          │ Claude CLI   │  │ OpenCode CLI│  │ Codex CLI     │
-          │ Claude auth  │  │ Go/providers│  │ Codex auth    │
-          └──────────────┘  └─────────────┘  └───────────────┘
-```
+All Code does not proxy private APIs or copy credentials. Each task runs through the selected CLI, with that CLI's own authentication, subscription, model access, tools, permissions, and session state.
 
-Example: when Claude calls `start_task` with `agent: "opencode"`, OpenCode—not Claude—selects and runs the requested OpenCode model. Claude remains the lead agent and receives the task result.
+## What works
 
-## Current MVP
+- One `allcode` command and one consistent interface on Windows, macOS, and Linux.
+- `/agent claude`, `/agent opencode`, and `/agent codex` switch the active backend.
+- `/model` and `/models` discover models from installed CLIs instead of maintaining a stale hard-coded catalog.
+- Per-agent model and native session IDs persist in `.all-code/session.json`.
+- Conversation turns are handed to an agent when it joins an existing workspace.
+- The active agent receives MCP tools for starting, checking, listing, and cancelling tasks in the other engines.
+- Delegated work is restricted to configured workspace roots and capped by a recursion limit.
+- A compatibility mode can still open each product's native terminal UI with `allcode native`.
 
-- One launcher that opens the selected agent's real native TUI
-- `/agent` picker plus `/agent claude`, `/agent opencode`, and `/agent codex`
-- Selecting an agent changes both the main engine and the complete terminal experience
-- Native slash commands pass directly to the selected CLI
-- Native adapters for Claude Code, OpenCode, and Codex
-- Async MCP tools: `list_agents`, `start_task`, `task_status`, `list_tasks`, `cancel_task`
-- Target-engine session continuation through `sessionId`
-- Optional native target model selection
-- Workspace allowlist and maximum delegation depth
-- No automatic permission bypasses
-- Safe subprocess invocation without a command shell
+## Quick start
 
-## Build
+You need Node.js 22 or newer and at least one supported CLI installed:
+
+- [Claude Code](https://github.com/anthropics/claude-code)
+- [OpenCode](https://github.com/anomalyco/opencode)
+- [Codex](https://github.com/openai/codex)
 
 ```powershell
+git clone https://github.com/itsramananshul/all-code.git
+cd all-code
 npm install
 npm run check
-node dist/cli.js agents
+npm link
+allcode
 ```
 
-Open the native workspace with Claude as the initial main agent:
+Your existing CLI logins remain where those CLIs store them. All Code does not ask for or persist API keys.
+
+## Inside All Code
+
+```text
+/agent              choose Claude Code, OpenCode, or Codex
+/agent opencode     switch directly to OpenCode
+/model              browse models for the active agent
+/model MODEL_ID     select an exact native model ID
+/models             list models from every installed agent
+/status             show the active route and saved session
+/clear              redraw the workspace
+/help               show local commands
+/exit               exit
+```
+
+Text and unrecognized slash commands are sent to the active backend. A provider command therefore runs only when that provider supports the same command in non-interactive mode; All Code's local commands always take precedence.
+
+## Direct and delegated execution
+
+Run a single task without opening the interface:
 
 ```powershell
-node dist/cli.js workspace --agent claude --cwd C:\path\to\project
+allcode run opencode --model opencode/big-pickle "Inspect the failing tests"
+allcode run codex "Review the current diff"
+allcode run claude "Plan the next implementation step"
 ```
 
-Inside the native interface, type `/agent` to select a different main agent. The launcher clears the current input, replaces the active native CLI, and keeps the same working directory. Returning to an agent asks its CLI to continue the most recent session in that workspace. All non-`/agent` input—including every native slash command—is passed to the selected CLI unchanged.
+The same adapters power the MCP broker. When an active agent calls `start_task`, the target CLI really performs the work and returns its native result. The current agent remains responsible for integrating that result.
 
-## Direct CLI usage
+## Documentation
 
-```powershell
-node dist/cli.js run opencode --cwd C:\path\to\project --model opencode/big-pickle "Inspect the failing tests and fix them"
-node dist/cli.js run codex --cwd C:\path\to\project "Review the OpenCode changes"
-node dist/cli.js run claude --cwd C:\path\to\project "Plan the next implementation step"
-```
+- [Getting started](docs/getting-started.md)
+- [Commands](docs/commands.md)
+- [Architecture](docs/architecture.md)
+- [Models and routing](docs/model-routing.md)
+- [Security](docs/security.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Contributing](CONTRIBUTING.md)
 
-## Add the bridge to Claude Code
+## Project status
 
-Add a project `.mcp.json`:
+All Code is an early release. The routing, context handoff, model discovery, process isolation, and MCP delegation paths are implemented and tested. Direct re-export of a proprietary agent's internal tool schema is intentionally not claimed: cross-agent capabilities are exposed through delegation, while each target executes with its own native tools.
 
-```json
-{
-  "mcpServers": {
-    "agent-workbench": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["C:/absolute/path/to/agent-workbench/dist/cli.js", "mcp"],
-      "env": {
-        "AGENT_WORKBENCH_HOST": "claude",
-        "AGENT_WORKBENCH_ALLOWED_ROOTS": "C:/absolute/path/to/your/project"
-      }
-    }
-  }
-}
-```
+## License
 
-Claude can then call `start_task` to delegate to OpenCode or Codex and poll `task_status` for the result.
-
-## Add the bridge to OpenCode
-
-Merge this into the project's `opencode.jsonc`:
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "agent-workbench": {
-      "type": "local",
-      "command": ["node", "C:/absolute/path/to/agent-workbench/dist/cli.js", "mcp"],
-      "enabled": true,
-      "environment": {
-        "AGENT_WORKBENCH_HOST": "opencode",
-        "AGENT_WORKBENCH_ALLOWED_ROOTS": "C:/absolute/path/to/your/project"
-      }
-    }
-  }
-}
-```
-
-## Add the bridge to Codex
-
-Project-scoped `.codex/config.toml`:
-
-```toml
-[mcp_servers.agent-workbench]
-command = "node"
-args = ["C:/absolute/path/to/agent-workbench/dist/cli.js", "mcp"]
-
-[mcp_servers.agent-workbench.env]
-AGENT_WORKBENCH_HOST = "codex"
-AGENT_WORKBENCH_ALLOWED_ROOTS = "C:/absolute/path/to/your/project"
-```
-
-## Security model
-
-- The MCP bridge permits work only beneath `AGENT_WORKBENCH_ALLOWED_ROOTS`.
-- Delegation depth defaults to three, preventing accidental Claude → OpenCode → Codex → Claude loops.
-- Codex runs with `workspace-write`; Claude does not bypass permission checks; OpenCode retains its configured permissions.
-- Prompts are passed as subprocess arguments/stdin, never interpolated into shell commands.
-- Credentials stay in their original CLI stores and are never returned by the bridge.
-
-## Upstream references
-
-The `upstream/` directory contains shallow reference clones and is deliberately gitignored:
-
-- <https://github.com/anomalyco/opencode> (MIT)
-- <https://github.com/openai/codex> (Apache-2.0)
-- <https://github.com/anthropics/claude-code> (public distribution/support repository; not the full engine source)
-
-## Next milestones
-
-1. Stream task events instead of polling.
-2. Add managed git worktrees for safe parallel edits.
-3. Persist exact per-agent session IDs instead of relying on each CLI's “most recent” lookup.
-4. Add capability discovery and model catalogs through each engine's native API.
-5. Add review/handoff workflows and durable task persistence.
-
-The project is intentionally source-only for now. Choose and add an open-source license before publishing.
+[MIT](LICENSE)

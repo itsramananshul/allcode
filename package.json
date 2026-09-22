@@ -11,7 +11,15 @@
   "bugs": {
     "url": "https://github.com/itsramananshul/all-code/issues"
   },
-  "keywords": ["ai", "cli", "coding-agent", "claude-code", "opencode", "codex", "mcp"],
+  "keywords": [
+    "ai",
+    "cli",
+    "coding-agent",
+    "claude-code",
+    "opencode",
+    "codex",
+    "mcp"
+  ],
   "type": "module",
   "bin": {
     "allcode": "dist/cli.js"
@@ -30,7 +38,6 @@
   },
   "devDependencies": {
     "@types/node": "26.6.2",
-    "@types/react": "^19.2.14",
     "tsx": "4.23.13",
     "typescript": "7.0.2",
     "vitest": "5.0.1"
@@ -38,7 +45,15 @@
   "engines": {
     "node": ">=22"
   },
-  "files": ["dist", "assets", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "assets",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CONTRIBUTING.md"
+  ],
   "allowScripts": {
     "node-pty@1.1.0": true,
     "esbuild@0.28.2": true
