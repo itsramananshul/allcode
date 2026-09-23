@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="620" viewBox="0 0 1120 620" role="img" aria-labelledby="title description">
+  <title id="title">All Code command palette preview</title>
+  <desc id="description">A dark full-screen terminal with the All Code face and header at top, a slash-command list directly above the fixed input, and a status line below it.</desc>
+  <rect width="1120" height="620" rx="18" fill="#101113"/>
+  <rect x="1" y="1" width="1118" height="618" rx="17" fill="none" stroke="#34363a" stroke-width="2"/>
+  <g font-family="Consolas, 'Cascadia Mono', monospace" font-size="20">
+    <text x="36" y="70" fill="#f1f1f2">╭───────╮  All Code v0.1.0</text>
+    <text x="36" y="101" fill="#f1f1f2">│ &lt; ■ &gt; │  OpenCode <tspan fill="#929498">· default model</tspan></text>
+    <text x="36" y="132" fill="#a7a9ad">╰───────╯  C:\projects\demo</text>
+    <text x="36" y="185" fill="#777a7e">One workspace. Every coding agent. Type / for commands.</text>
+    <rect x="22" y="237" width="1076" height="33" rx="3" fill="#414449"/>
+    <text x="38" y="261" fill="#fff">/agent [name]</text><text x="344" y="261" fill="#fff">Choose Claude Code, OpenCode, or Codex</text>
+    <text x="38" y="300" fill="#b6b7ba">/model [id]</text><text x="344" y="300" fill="#898b8f">Choose a model for the active agent</text>
+    <text x="38" y="339" fill="#b6b7ba">/models</text><text x="344" y="339" fill="#898b8f">Show models from every agent</text>
+    <text x="38" y="378" fill="#b6b7ba">/status</text><text x="344" y="378" fill="#898b8f">Show the active route and session</text>
+    <text x="38" y="417" fill="#b6b7ba">/clear</text><text x="344" y="417" fill="#898b8f">Clear the workspace transcript</text>
+    <text x="38" y="456" fill="#b6b7ba">/help</text><text x="344" y="456" fill="#898b8f">Show the command reference</text>
+    <text x="38" y="495" fill="#b6b7ba">/exit</text><text x="344" y="495" fill="#898b8f">Exit All Code</text>
+    <line x1="22" y1="519" x2="1098" y2="519" stroke="#606267"/>
+    <text x="28" y="550" fill="#f1f1f2">› /</text>
+    <line x1="22" y1="568" x2="1098" y2="568" stroke="#606267"/>
+    <text x="36" y="598" fill="#898b8f" font-size="17">↑↓ browse · Tab complete · Enter run · Esc close</text>
+  </g>
+</svg>

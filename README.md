@@ -46,7 +46,9 @@ Type a request as usual. All Code sends it to the active agent.
 › find the cause of the failing authentication test
 ```
 
-Type `/` to open the command palette. The list filters as you type; use the arrow keys to browse, Enter to select, Tab to complete, and Escape to close it.
+Type `/` to open the command palette above the input. The list filters as you type; use the arrow keys to browse, Enter to run the highlighted command, Tab to complete it in the input, and Escape to close it. The input stays at the bottom of the screen while you work.
+
+![All Code command palette](docs/images/command-palette.svg)
 
 Change agents without leaving the session:
 
@@ -66,6 +68,10 @@ Choose a model from the active agent:
 ```
 
 The agent and model pickers are searchable and keyboard-driven.
+
+While an agent runs, the small All Code face blinks beside a rotating status word and elapsed time.
+
+![All Code working state](docs/images/working-state.svg)
 
 List models from OpenCode and Codex alongside All Code's Claude aliases:
 
@@ -101,7 +107,7 @@ All Code also gives the active agent an MCP broker. It can delegate a task to ei
 | `/model <id>` | Select an exact model ID |
 | `/models` | Show all discovered model catalogs |
 | `/status` | Show the current route and session |
-| `/clear` | Redraw the All Code workspace |
+| `/clear` | Clear the workspace transcript |
 | `/help` | Show commands |
 | `/exit` | Exit All Code |
 

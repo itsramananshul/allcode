@@ -1,6 +1,7 @@
 import { emitKeypressEvents, type Key } from "node:readline"
 import { stdin as defaultInput, stdout as defaultOutput } from "node:process"
 import type { ReadStream, WriteStream } from "node:tty"
+import type { WorkspaceScreen } from "./workspace-screen.js"
 
 const white = "\x1b[97m"
 const gray = "\x1b[90m"
@@ -24,7 +25,7 @@ export const commandItems: CommandItem[] = [
   { command: "/model", usage: "/model [id]", description: "Choose a model for the active agent" },
   { command: "/models", usage: "/models", description: "Show models from every agent" },
   { command: "/status", usage: "/status", description: "Show the active route and session" },
-  { command: "/clear", usage: "/clear", description: "Redraw the All Code workspace" },
+  { command: "/clear", usage: "/clear", description: "Clear the workspace transcript" },
   { command: "/help", usage: "/help", description: "Show the command reference" },
   { command: "/exit", usage: "/exit", description: "Exit All Code" },
   { command: "/provider", usage: "/provider [name]", description: "Alias for /agent" },
@@ -79,6 +80,7 @@ export async function readCommandLine(
   history: string[],
   input: ReadStream = defaultInput,
   output: WriteStream = defaultOutput,
+  screen?: WorkspaceScreen,
 ): Promise<string> {
   let value = ""
   let cursor = 0
@@ -87,12 +89,16 @@ export async function readCommandLine(
   let historyIndex = history.length
   const prompt = "› "
   const { wasRaw, wasFlowing } = startRawInput(input)
-  output.write("\x1b[s")
+  if (!screen) output.write("\x1b[s")
 
   const visibleItems = (): CommandItem[] => dismissed ? [] : filterCommandItems(value)
   const render = (): void => {
     const matches = visibleItems()
     if (selected >= matches.length) selected = Math.max(0, matches.length - 1)
+    if (screen) {
+      screen.setInput(value, cursor, matches.map((item) => ({ label: item.usage, description: item.description })), selected)
+      return
+    }
     const width = Math.max(40, output.columns ?? 100)
     output.write("\x1b[u\x1b[0J")
     output.write(`${white}${prompt}${reset}${value}`)
@@ -114,8 +120,13 @@ export async function readCommandLine(
     const finish = (result: string): void => {
       input.off("keypress", onKeypress)
       stopRawInput(input, wasRaw, wasFlowing)
-      output.write("\x1b[u\x1b[0J")
-      output.write(`${white}${prompt}${reset}${result}\n`)
+      if (screen) {
+        screen.setInput("", 0)
+        if (result) screen.append(`› ${result}\n`)
+      } else {
+        output.write("\x1b[u\x1b[0J")
+        output.write(`${white}${prompt}${reset}${result}\n`)
+      }
       resolve(result)
     }
 
@@ -198,6 +209,7 @@ export async function pickItem<T extends string>(
   options: { current?: T; allowCustom?: boolean; limit?: number } = {},
   input: ReadStream = defaultInput,
   output: WriteStream = defaultOutput,
+  screen?: WorkspaceScreen,
 ): Promise<T | undefined> {
   let query = ""
   let cursor = 0
@@ -205,12 +217,16 @@ export async function pickItem<T extends string>(
   const limit = options.limit ?? 10
   const prompt = "Filter: "
   const { wasRaw, wasFlowing } = startRawInput(input)
-  output.write("\x1b[s")
+  if (!screen) output.write("\x1b[s")
 
   const render = (): void => {
     const matches = filterPickerItems(query, items)
     if (selected >= Math.min(matches.length, limit)) selected = Math.max(0, Math.min(matches.length, limit) - 1)
     const shown = matches.slice(0, limit)
+    if (screen) {
+      screen.setInput(query, cursor, shown.map((item) => ({ label: item.label, description: item.description })), selected)
+      return
+    }
     const width = Math.max(40, output.columns ?? 100)
     output.write("\x1b[u\x1b[0J")
     output.write(`${white}${title}${reset}\n${gray}${prompt}${reset}${query}\n`)
@@ -235,7 +251,8 @@ export async function pickItem<T extends string>(
     const finish = (result: T | undefined): void => {
       input.off("keypress", onKeypress)
       stopRawInput(input, wasRaw, wasFlowing)
-      output.write("\x1b[u\x1b[0J")
+      if (screen) screen.setInput("", 0)
+      else output.write("\x1b[u\x1b[0J")
       resolve(result)
     }
 

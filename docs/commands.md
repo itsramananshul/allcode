@@ -12,6 +12,8 @@ allcode [--agent claude|opencode|codex] [--cwd PATH]
 
 Typing `/` opens the command palette immediately. Continue typing to filter it, move with the up and down arrow keys, press Enter to run the highlighted command, or press Tab to complete it in the input. Escape dismisses the palette.
 
+![All Code command palette](images/command-palette.svg)
+
 | Command | Description |
 | --- | --- |
 | `/agent` | Open the agent picker |
@@ -23,11 +25,11 @@ Typing `/` opens the command palette immediately. Continue typing to filter it, 
 | `/model <id>` | Select a native model ID |
 | `/models` | List models from all installed agents |
 | `/status` | Print the active agent, model, session ID, and state file |
-| `/clear` | Redraw the All Code workspace |
+| `/clear` | Clear the workspace transcript |
 | `/help` | Print the command list |
 | `/exit` | Exit; `/quit` is an alias |
 
-Input that does not match an All Code command is sent to the active agent. This includes slash-prefixed input, so commands supported by an agent's non-interactive mode can still be used.
+Input that does not match an All Code command is sent to the active agent as a prompt. Agent-specific interactive slash commands are not added to the All Code palette; use `allcode native --agent <name>` when you need that agent's own terminal commands.
 
 `/agent` and `/model` open searchable pickers. Their lists support arrow-key navigation, Enter to select, and Escape to keep the current value.
 

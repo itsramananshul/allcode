@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="520" viewBox="0 0 1120 520" role="img" aria-labelledby="title description">
+  <title id="title">All Code working state preview</title>
+  <desc id="description">A dark full-screen terminal with a submitted task, a blinking All Code face and rotating working word above the fixed input.</desc>
+  <rect width="1120" height="520" rx="18" fill="#101113"/>
+  <rect x="1" y="1" width="1118" height="518" rx="17" fill="none" stroke="#34363a" stroke-width="2"/>
+  <g font-family="Consolas, 'Cascadia Mono', monospace" font-size="20">
+    <text x="36" y="70" fill="#f1f1f2">╭───────╮  All Code v0.1.0</text>
+    <text x="36" y="101" fill="#f1f1f2">│ &lt; ■ &gt; │  OpenCode <tspan fill="#929498">· opencode/big-pickle</tspan></text>
+    <text x="36" y="132" fill="#a7a9ad">╰───────╯  C:\projects\demo</text>
+    <text x="36" y="185" fill="#777a7e">One workspace. Every coding agent. Type / for commands.</text>
+    <text x="36" y="285" fill="#f1f1f2">› find the cause of the failing authentication test</text>
+    <text x="36" y="327" fill="#c8c9cb">◈ │ &lt; ■ &gt; │  Fucking… 3s · OpenCode</text>
+    <line x1="22" y1="419" x2="1098" y2="419" stroke="#606267"/>
+    <text x="28" y="450" fill="#f1f1f2">›</text>
+    <line x1="22" y1="468" x2="1098" y2="468" stroke="#606267"/>
+    <text x="36" y="498" fill="#898b8f" font-size="17">OpenCode · opencode/big-pickle</text>
+  </g>
+</svg>

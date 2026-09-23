@@ -56,6 +56,10 @@ Enter a request at the prompt:
 
 Type `/` at an empty prompt to browse every All Code command without leaving the workspace.
 
+![All Code command palette](images/command-palette.svg)
+
+The menu filters as you type. Use ↑ and ↓ to highlight a command, Enter to run it, Tab to complete its name, or Escape to close the menu. At a regular prompt, ↑ and ↓ browse your input history.
+
 Switch agents at any point:
 
 ```text
@@ -64,6 +68,10 @@ Switch agents at any point:
 ```
 
 The next agent receives the shared conversation and continues in the same working directory.
+
+While a task runs, the small mascot face blinks beside a changing status word, elapsed time, and the active agent. The response appears beneath it when the task completes.
+
+![All Code working state](images/working-state.svg)
 
 ## Select a model
 
