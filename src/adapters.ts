@@ -165,10 +165,20 @@ export class CodexAdapter extends BaseAdapter {
   }
 }
 
+export class HermesAdapter extends BaseAdapter {
+  readonly name = "hermes" as const
+  readonly description = "Hermes Agent through its ACP server, with host approvals and native sessions"
+
+  buildInvocation(request: RunRequest, executable: string): Invocation {
+    return { command: executable, args: ["acp"], cwd: request.cwd, env: childEnv(this.name, request.cwd) }
+  }
+}
+
 const adapters: Record<AgentName, AgentAdapter> = {
   claude: new ClaudeAdapter(),
   opencode: new OpenCodeAdapter(),
   codex: new CodexAdapter(),
+  hermes: new HermesAdapter(),
 }
 
 export function getAdapter(name: AgentName): AgentAdapter {

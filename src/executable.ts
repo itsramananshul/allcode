@@ -6,6 +6,7 @@ const overrides: Record<string, string> = {
   claude: "ALL_CODE_CLAUDE_COMMAND",
   opencode: "ALL_CODE_OPENCODE_COMMAND",
   codex: "ALL_CODE_CODEX_COMMAND",
+  hermes: "ALL_CODE_HERMES_COMMAND",
 }
 
 function executableFromNpmShim(shim: string): string | undefined {

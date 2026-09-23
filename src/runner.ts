@@ -4,9 +4,18 @@ import { runProcess } from "./process-runner.js"
 import { ApprovalBroker, type ApprovalHandler } from "./approval-broker.js"
 import { runOpenCodeWithApprovals } from "./opencode-approval-runner.js"
 import { runCodexWithApprovals } from "./codex-approval-runner.js"
+import { HermesAcpRunner } from "./hermes-acp-runner.js"
 import type { AgentResult, RunRequest } from "./types.js"
 
 export async function runAgent(request: RunRequest, signal?: AbortSignal, onApproval?: ApprovalHandler): Promise<AgentResult> {
+  if (request.agent === "hermes") {
+    const hermes = new HermesAcpRunner()
+    try {
+      const result = await hermes.run(request, onApproval, signal)
+      if (result.exitCode !== 0) throw new Error(`hermes failed: ${result.stderr.trim() || "turn did not complete"}`)
+      return result
+    } finally { await hermes.close() }
+  }
   const broker = onApproval && request.agent === "claude" ? new ApprovalBroker(onApproval) : undefined
   if (broker) await broker.start()
   try {

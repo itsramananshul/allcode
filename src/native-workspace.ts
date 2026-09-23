@@ -24,7 +24,7 @@ export class AgentCommandInterceptor {
 
   #track(character: string): Omit<InterceptResult, "forward"> | undefined {
     if (character === "\r" || character === "\n") {
-      const match = this.#line.trim().match(/^\/agent(?:\s+(claude|opencode|codex))?\s*$/i)
+      const match = this.#line.trim().match(/^\/agent(?:\s+(claude|opencode|codex|hermes))?\s*$/i)
       this.#line = ""
       if (match) {
         const selected = match[1]?.toLowerCase() as AgentName | undefined
@@ -139,6 +139,8 @@ export function nativeLaunch(agent: AgentName, cwd: string): { command: string; 
     return { command, args: [], env }
   }
 
+  if (agent === "hermes") return { command, args: [], env }
+
   const args = [
     "-c", `mcp_servers.allcode.command=${JSON.stringify(process.execPath)}`,
     "-c", `mcp_servers.allcode.args=${JSON.stringify([cli, "mcp"])}`,
@@ -177,6 +179,7 @@ export async function startNativeWorkspace(initialAgent: AgentName, cwdInput: st
     if (launched.has(agent)) {
       if (agent === "claude") spec.args.push("--continue")
       else if (agent === "opencode") spec.args.push("--continue")
+      else if (agent === "hermes") spec.args.push("--resume", "latest", "--in", cwd)
       else spec.args.push("resume", "--last")
     }
     launched.add(agent)
@@ -215,8 +218,8 @@ export async function startNativeWorkspace(initialAgent: AgentName, cwdInput: st
   process.stdin.setEncoding("utf8")
   const handleInput = (data: string) => {
     if (picking) {
-      const key = decodedInputCharacters(data).find((character) => "123\x03\x1b".includes(character))
-      const selected = key === "1" ? "claude" : key === "2" ? "opencode" : key === "3" ? "codex" : undefined
+      const key = decodedInputCharacters(data).find((character) => "1234\x03\x1b".includes(character))
+      const selected = key === "1" ? "claude" : key === "2" ? "opencode" : key === "3" ? "codex" : key === "4" ? "hermes" : undefined
       if (selected) switchAgent(selected)
       else if (key === "\x03" || key === "\x1b") {
         picking = false
@@ -235,7 +238,7 @@ export async function startNativeWorkspace(initialAgent: AgentName, cwdInput: st
           generation += 1
           child?.kill()
           picking = true
-          process.stdout.write("\x1bc/agent\r\n\r\nSelect the main agent (appearance + engine):\r\n\r\n  1  Claude Code\r\n  2  OpenCode\r\n  3  Codex\r\n\r\nPress 1, 2, or 3. Esc cancels.\r\n")
+          process.stdout.write("\x1bc/agent\r\n\r\nSelect the main agent (appearance + engine):\r\n\r\n  1  Claude Code\r\n  2  OpenCode\r\n  3  Codex\r\n  4  Hermes\r\n\r\nPress 1, 2, 3, or 4. Esc cancels.\r\n")
         }
       }
       if (result.forward && child) {

@@ -23,7 +23,7 @@ Run `allcode agents` and check the reported executable path. Set an explicit pat
 $env:ALL_CODE_OPENCODE_COMMAND = "C:\path\to\opencode.exe"
 ```
 
-The equivalent variables for the other routes are `ALL_CODE_CLAUDE_COMMAND` and `ALL_CODE_CODEX_COMMAND`.
+The equivalent variables for the other routes are `ALL_CODE_CLAUDE_COMMAND`, `ALL_CODE_CODEX_COMMAND`, and `ALL_CODE_HERMES_COMMAND`.
 
 ## The model list is empty
 
@@ -34,6 +34,12 @@ opencode models
 ```
 
 For Codex, confirm that `codex app-server --stdio` starts. All Code stops Codex model discovery after 12 seconds and prints the catalog error.
+
+For Hermes, run `hermes acp --check`. All Code reads the available models from a Hermes ACP session; the first discovery can take time while Hermes loads its configuration and tools.
+
+## Hermes reports an unsupported default model
+
+The default model belongs to your Hermes provider configuration, not All Code. Run `allcode models hermes`, then select an available provider-prefixed model with `/model` or `allcode run hermes --model <id>`. This changes the All Code session selection without editing your Hermes settings.
 
 ## `403`, login required, or client restriction
 

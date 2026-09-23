@@ -1,0 +1,61 @@
+import { describe, expect, it } from "vitest"
+import { HermesAcpRunner } from "./hermes-acp-runner.js"
+import type { RunRequest } from "./types.js"
+
+const fixture = `
+const readline = require("node:readline")
+let promptId
+let model = "copilot:gpt-4.1"
+let mode = "default"
+let turn = 0
+const send = (value) => process.stdout.write(JSON.stringify(value) + "\\n")
+readline.createInterface({ input: process.stdin }).on("line", (line) => {
+  const message = JSON.parse(line)
+  if (message.method === "initialize") send({ id: message.id, result: { protocolVersion: 1 } })
+  else if (message.method === "session/new") send({ id: message.id, result: {
+    sessionId: "11111111-1111-4111-8111-111111111111",
+    models: { currentModelId: model, availableModels: [{ modelId: model, name: "GPT-4.1" }] },
+    modes: { currentModeId: mode },
+  } })
+  else if (message.method === "session/set_model") {
+    model = message.params.modelId
+    send({ id: message.id, result: {} })
+  } else if (message.method === "session/set_mode") {
+    mode = message.params.modeId
+    send({ id: message.id, result: {} })
+  } else if (message.method === "session/prompt") {
+    promptId = message.id
+    turn += 1
+    send({ id: 900 + turn, method: "session/request_permission", params: {
+      toolCall: { title: "Write file", rawInput: { path: "test.txt" } },
+      options: [{ optionId: "allow_once", kind: "allow_once" }, { optionId: "deny", kind: "reject_once" }],
+    } })
+  } else if (message.id === 900 + turn) {
+    const decision = message.result.outcome.optionId
+    send({ method: "session/update", params: { update: {
+      sessionUpdate: "agent_message_chunk", content: { type: "text", text: turn + ":" + decision + ":" + model + ":" + mode },
+    } } })
+    send({ id: promptId, result: { stopReason: "end_turn" } })
+  }
+})
+`
+
+const request: RunRequest = { agent: "hermes", cwd: process.cwd(), prompt: "test", permissionMode: "default" }
+
+describe("Hermes ACP route", () => {
+  it("discovers models, keeps a session, and routes approve/deny through the host", async () => {
+    const runner = new HermesAcpRunner(() => ({
+      command: process.execPath, args: ["-e", fixture], cwd: process.cwd(),
+    }))
+    try {
+      const models = await runner.listModels(request)
+      expect(models.currentModelId).toBe("copilot:gpt-4.1")
+      const first = await runner.run(request, async () => false)
+      const second = await runner.run({ ...request, sessionId: first.sessionId, model: "copilot:gpt-4.1",
+        permissionMode: "accept_edits" }, async () => true)
+      expect(first.finalText).toBe("1:deny:copilot:gpt-4.1:default")
+      expect(second.finalText).toBe("2:allow_once:copilot:gpt-4.1:accept_edits")
+      expect(second.sessionId).toBe(first.sessionId)
+    } finally { await runner.close() }
+  }, 15_000)
+})

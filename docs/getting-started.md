@@ -7,6 +7,7 @@ Install Node.js 22 or newer and one or more of the supported coding agents:
 - [Claude Code](https://github.com/anthropics/claude-code)
 - [OpenCode](https://github.com/anomalyco/opencode)
 - [Codex](https://github.com/openai/codex)
+- [Hermes Agent](https://github.com/NousResearch/hermes-agent)
 
 Sign in through each agent's own CLI. All Code uses those existing sessions.
 
@@ -18,6 +19,8 @@ cd allcode
 npm install
 npm link
 ```
+
+The [v0.2.0 release](https://github.com/itsramananshul/allcode/releases/tag/v0.2.0) also includes an installable npm tarball. Download it, then run `npm install -g ./allcode-0.2.0.tgz`. This installs the `allcode` command; each coding agent still needs its own installation and login.
 
 Confirm that All Code can find the agents:
 
@@ -42,6 +45,7 @@ Open with a specific agent:
 allcode --agent claude
 allcode --agent opencode
 allcode --agent codex
+allcode --agent hermes
 ```
 
 Without `--agent`, an existing workspace resumes its last active agent. A new workspace starts with OpenCode.
@@ -71,7 +75,7 @@ Switch agents at any point:
 
 ![All Code agent picker preview](images/agent-picker.svg)
 
-In the transcript, your submitted input begins with `You ›`; agent replies are labeled with the agent's name and elapsed time.
+Your submitted input appears on a highlighted line without a `You` prefix. Agent replies appear in a separate block labeled with the agent's name and elapsed time.
 
 While a task runs, a changing status word shows elapsed time and the active agent. The response appears beneath it when the task completes. Windows Terminal displays the full mascot image in the header.
 
@@ -90,6 +94,8 @@ The picker reads the active agent's catalog. You can also enter an exact native 
 ```
 
 All Code saves one model selection per agent.
+
+For Hermes, `/model` reads the model catalog from your installed Hermes ACP service. The `default` entry uses Hermes's configured model. If that provider reports an unavailable model, choose another model from the picker; All Code does not rewrite your Hermes configuration.
 
 Use `/models` to browse models from all installed agents. Select with the arrow keys and Enter; All Code switches to the model's agent automatically. The picker scrolls through the full list, and typing filters it—you never need to enter the full model ID.
 

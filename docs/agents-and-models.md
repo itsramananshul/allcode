@@ -2,27 +2,29 @@
 
 ## Agent routes
 
-All Code has three routes:
+All Code has four routes:
 
 | Route | Executable | Typical model ID |
 | --- | --- | --- |
 | `claude` | `claude` | `sonnet` |
 | `opencode` | `opencode` | `opencode/big-pickle` |
 | `codex` | `codex` | `default` |
+| `hermes` | `hermes` | `default` or a provider-prefixed model ID |
 
 `/agent` changes the route for the next request. The terminal layout and All Code commands remain the same.
 
-Use `/agent` to choose from a searchable picker, or `/agent claude`, `/agent opencode`, or `/agent codex` to switch directly.
+Use `/agent` to choose from a searchable picker, or `/agent claude`, `/agent opencode`, `/agent codex`, or `/agent hermes` to switch directly.
 
 ![All Code agent picker preview](images/agent-picker.svg)
 
 ## Model discovery
 
-All Code uses live discovery for OpenCode and Codex, and supplies a short set of Claude Code aliases:
+All Code uses live discovery for OpenCode, Codex, and Hermes, and supplies a short set of Claude Code aliases:
 
 - OpenCode: `opencode models`
 - Codex: app-server `model/list`
 - Claude Code: `default`, `opus`, `sonnet`, `haiku`, and `fable`
+- Hermes: ACP `session/new` model catalog from your installed Hermes CLI
 
 Run discovery without opening the workspace:
 
@@ -58,7 +60,9 @@ Each agent keeps its own selection. Moving from OpenCode to Codex and back resto
 
 All Code records each turn in `.allcode/session.json`. A delivery cursor tracks which messages each agent has seen. On the first request after a switch, the new agent receives the unseen conversation followed by the current request.
 
-Native session IDs are saved separately for Claude Code, OpenCode, and Codex. Returning to an agent resumes that agent's session when the CLI supplies a resumable ID.
+Native session IDs are saved separately for Claude Code, OpenCode, Codex, and Hermes. Returning to an agent resumes that agent's session when the CLI supplies a resumable ID.
+
+Hermes runs through `hermes acp` in the shared workspace. Its ACP session supports model and permission-mode changes without replacing your installed Hermes configuration. `allcode native --agent hermes` instead opens Hermes's own terminal UI.
 
 ## Delegation
 

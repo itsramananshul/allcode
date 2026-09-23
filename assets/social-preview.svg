@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
   <title id="title">All Code</title>
-  <desc id="description">The All Code mascot beside the words Claude Code, OpenCode, and Codex in one terminal.</desc>
+  <desc id="description">The All Code mascot beside the four supported coding agents: Claude Code, OpenCode, Codex, and Hermes.</desc>
   <rect width="1280" height="640" fill="#101317"/>
   <image href="allcode-mascot.png" xlink:href="allcode-mascot.png" x="54" y="54" width="532" height="532"/>
   <line x1="628" y1="133" x2="628" y2="507" stroke="#383d43" stroke-width="2"/>
   <text x="698" y="296" fill="#ffffff" font-family="'Segoe UI', Arial, sans-serif" font-size="100" font-weight="700" letter-spacing="-3">All Code</text>
-  <text x="701" y="362" fill="#b6bac0" font-family="'Segoe UI', Arial, sans-serif" font-size="32">Claude Code, OpenCode, and Codex</text>
-  <text x="701" y="410" fill="#b6bac0" font-family="'Segoe UI', Arial, sans-serif" font-size="32">in one terminal.</text>
+  <text x="701" y="362" fill="#b6bac0" font-family="'Segoe UI', Arial, sans-serif" font-size="32">Claude Code · OpenCode</text>
+  <text x="701" y="410" fill="#b6bac0" font-family="'Segoe UI', Arial, sans-serif" font-size="32">Codex · Hermes · One terminal</text>
 </svg>

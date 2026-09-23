@@ -124,7 +124,7 @@ export async function runCodexWithApprovals(
 
   try {
     await rpc("initialize", {
-      clientInfo: { name: "allcode", title: "All Code", version: "0.1.0" },
+      clientInfo: { name: "allcode", title: "All Code", version: "0.2.0" },
       capabilities: { experimentalApi: true },
     })
     send({ method: "initialized" })

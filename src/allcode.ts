@@ -3,6 +3,7 @@ import { emitKeypressEvents } from "node:readline"
 import { discoverAllModels, discoverEfforts, discoverModels, type ModelEntry } from "./models.js"
 import { runAgent } from "./runner.js"
 import { ClaudeStreamRunner } from "./claude-stream-runner.js"
+import { HermesAcpRunner } from "./hermes-acp-runner.js"
 import { SharedSession } from "./session.js"
 import { pickItem, promptApproval, readCommandLine, type PickerItem } from "./terminal-ui.js"
 import { agentNames, type AgentName } from "./types.js"
@@ -16,15 +17,15 @@ const workingWords = [
 ]
 
 function agentLabel(agent: AgentName): string {
-  return agent === "claude" ? "Claude Code" : agent === "opencode" ? "OpenCode" : "Codex"
+  return agent === "claude" ? "Claude Code" : agent === "opencode" ? "OpenCode" : agent === "codex" ? "Codex" : "Hermes"
 }
 
 function defaultPermissionMode(agent: AgentName): string {
-  return agent === "claude" ? "acceptEdits" : agent === "opencode" ? "native" : "workspace-write"
+  return agent === "claude" ? "acceptEdits" : agent === "opencode" ? "native" : agent === "codex" ? "workspace-write" : "default"
 }
 
 function showHelp(screen: WorkspaceScreen): void {
-  screen.append("Commands\n/agent [name]   Choose Claude Code, OpenCode, or Codex\n/model [id]     Select a model for the active agent\n/models         Select a model from any installed agent\n/effort         Set the active model's reasoning effort\n/mode           Set the active agent's permission mode\n/status         Show the active route and session\n/clear          Clear the workspace\n/exit           Exit All Code\n")
+  screen.append("Commands\n/agent [name]   Choose Claude Code, OpenCode, Codex, or Hermes\n/model [id]     Select a model for the active agent\n/models         Select a model from any installed agent\n/effort         Set the active model's reasoning effort\n/mode           Set the active agent's permission mode\n/status         Show the active route and session\n/clear          Clear the workspace\n/exit           Exit All Code\n")
 }
 
 async function chooseAgent(current: AgentName, screen: WorkspaceScreen): Promise<AgentName> {
@@ -32,6 +33,7 @@ async function chooseAgent(current: AgentName, screen: WorkspaceScreen): Promise
     { value: "claude", label: "Claude Code", description: "Anthropic CLI" },
     { value: "opencode", label: "OpenCode", description: "Open provider catalog" },
     { value: "codex", label: "Codex", description: "OpenAI CLI" },
+    { value: "hermes", label: "Hermes", description: "Hermes Agent via ACP" },
   ]
   return await pickItem("Choose an agent", items, { current }, input, output, screen) ?? current
 }
@@ -42,9 +44,19 @@ function modelChoice(model: ModelEntry): PickerItem<string> {
   return { value: model.id, label, description: [model.id, ...flags].join(" · ") }
 }
 
-async function chooseModel(agent: AgentName, current: string | undefined, screen: WorkspaceScreen): Promise<string | undefined> {
+async function chooseModel(agent: AgentName, current: string | undefined, screen: WorkspaceScreen, hermes?: HermesAcpRunner, cwd?: string, sessionId?: string): Promise<string | undefined> {
   screen.setWorking(`Discovering ${agentLabel(agent)} models…`)
-  const catalog = await discoverModels(agent)
+  const catalog = agent === "hermes" && hermes && cwd
+    ? await hermes.listModels({ agent, cwd, prompt: "", sessionId }).then((state) => ({
+      agent,
+      models: [
+        { agent, id: "default", label: "Hermes configured default", isDefault: true },
+        ...state.availableModels.flatMap((entry) => typeof entry.modelId === "string" ? [{
+          agent, id: entry.modelId, label: typeof entry.name === "string" ? entry.name : entry.modelId,
+        }] : []),
+      ],
+    } as Awaited<ReturnType<typeof discoverModels>>))
+    : await discoverModels(agent)
   screen.setWorking("")
   if (catalog.error) screen.append(`Catalog unavailable: ${catalog.error}`)
   const items = catalog.models.map(modelChoice)
@@ -119,11 +131,17 @@ const codexModes: PickerItem<string>[] = [
   { value: "bypass", label: "Full access", description: "DANGEROUS: no sandbox or approvals" },
 ]
 
+const hermesModes: PickerItem<string>[] = [
+  { value: "default", label: "Ask before edits", description: "Hermes ACP default; show approve/deny requests" },
+  { value: "accept_edits", label: "Accept workspace edits", description: "Auto-allow workspace edits; ask for sensitive paths" },
+  { value: "dont_ask", label: "Don't ask for edits", description: "Auto-allow edits except sensitive paths" },
+]
+
 async function chooseMode(agent: AgentName, current: string | undefined, screen: WorkspaceScreen): Promise<string | undefined> {
-  const choices = agent === "claude" ? claudeModes : agent === "opencode" ? opencodeModes : codexModes
-  const defaultMode = agent === "claude" ? "acceptEdits" : agent === "opencode" ? "native" : "workspace-write"
+  const choices = agent === "claude" ? claudeModes : agent === "opencode" ? opencodeModes : agent === "codex" ? codexModes : hermesModes
+  const defaultMode = defaultPermissionMode(agent)
   const selected = await pickItem(`${agentLabel(agent)} permission mode`, choices, { current: current ?? defaultMode }, input, output, screen)
-  if (selected === "bypassPermissions" || selected === "bypass" || selected === "auto") {
+  if (["bypassPermissions", "bypass", "auto", "accept_edits", "dont_ask"].includes(selected ?? "")) {
     const confirm = await pickItem("This mode reduces approval checks. Continue?", [
       { value: "no", label: "No — keep current mode" },
       { value: "yes", label: "Yes — use selected mode" },
@@ -177,6 +195,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
   const history: string[] = []
   const screen = new WorkspaceScreen(output, cwd, agentLabel(agent), model ?? "default model")
   const claude = new ClaudeStreamRunner()
+  const hermes = new HermesAcpRunner()
   const inputWasRaw = Boolean(input.isRaw)
   const inputWasFlowing = input.readableFlowing === true
   emitKeypressEvents(input)
@@ -198,6 +217,15 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
       }
     }
     await prepareClaude()
+    const prepareHermes = async (): Promise<void> => {
+      if (agent !== "hermes") return
+      try {
+        await hermes.prepare({ agent, cwd, prompt: "", model, permissionMode, sessionId: shared.nativeSession("hermes") })
+      } catch (error) {
+        screen.append(`Hermes startup failed: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+    await prepareHermes()
     while (true) {
       const line = (await readCommandLine(history, input, output, screen)).trim()
       if (!line) continue
@@ -219,6 +247,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
           screen.setExecutionSettings(effort, permissionMode)
           screen.append(`Reasoning effort: ${effort ?? "provider default"}`)
           await prepareClaude()
+          await prepareHermes()
         } catch (error) { screen.append(`Effort discovery failed: ${error instanceof Error ? error.message : String(error)}`) }
         continue
       }
@@ -228,6 +257,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         screen.setExecutionSettings(effort, permissionMode)
         screen.append(`Permission mode: ${permissionMode ?? "native default"}`)
         await prepareClaude()
+        await prepareHermes()
         continue
       }
       if (command === "/models") {
@@ -244,6 +274,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
           screen.setRoute(agentLabel(agent), model)
           screen.append(`Active model: ${agentLabel(agent)} · ${model}`)
           await prepareClaude()
+          await prepareHermes()
         }
         continue
       }
@@ -260,10 +291,11 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         screen.setRoute(agentLabel(agent), model ?? "default model")
         screen.append(`Active agent: ${agentLabel(agent)}`)
         await prepareClaude()
+        await prepareHermes()
         continue
       }
       if (command === "/model") {
-        const selected = parts.length > 0 ? parts.join(" ") : await chooseModel(agent, model, screen)
+        const selected = parts.length > 0 ? parts.join(" ") : await chooseModel(agent, model, screen, hermes, cwd, shared.nativeSession("hermes"))
         if (selected !== model) { effort = undefined; shared.setEffort(agent, undefined) }
         model = selected
         shared.setModel(agent, model)
@@ -271,6 +303,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         screen.setExecutionSettings(effort, permissionMode)
         screen.append(`Active model: ${model ?? "default"}`)
         await prepareClaude()
+        await prepareHermes()
         continue
       }
       const animation = startWorkingAnimation(agent, screen)
@@ -279,7 +312,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         const request = {
           agent,
           cwd,
-          model: model === "default" ? undefined : model,
+          model: model === "default" && agent !== "hermes" ? undefined : model,
           effort,
           permissionMode,
           sessionId: shared.nativeSession(agent),
@@ -296,6 +329,8 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         }
         const result = agent === "claude"
           ? await claude.run({ ...request, agent: "claude" }, onApproval)
+          : agent === "hermes"
+            ? await hermes.run({ ...request, agent: "hermes" }, onApproval)
           : await runAgent(request, undefined, onApproval)
         if (result.sessionId) shared.setNativeSession(agent, result.sessionId)
         shared.recordTurn(agent, line, result.finalText.trim())
@@ -310,6 +345,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
     }
   } finally {
     await claude.close()
+    await hermes.close()
     screen.stop()
     input.setRawMode(inputWasRaw)
     if (!inputWasFlowing) input.pause()

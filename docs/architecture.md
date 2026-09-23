@@ -1,6 +1,6 @@
 # Architecture
 
-All Code is a terminal interface over three CLI adapters.
+All Code is a terminal interface over four installed coding agents.
 
 ```text
 ┌─────────────────────────────────────────────┐
@@ -8,11 +8,11 @@ All Code is a terminal interface over three CLI adapters.
 │  prompt loop · slash commands · session     │
 └─────────────────────┬───────────────────────┘
                       │ active route
-          ┌───────────┼───────────┐
-          ▼           ▼           ▼
-    Claude Code    OpenCode     Codex
-       adapter      adapter     adapter
-          └───────────┼───────────┘
+      ┌───────────┬───┴───────┬───────────┐
+      ▼           ▼           ▼           ▼
+ Claude Code   OpenCode     Codex       Hermes
+   adapter      adapter     adapter       ACP
+      └───────────┴───────┬───┴───────────┘
                       │
                       ▼
               All Code MCP server
@@ -30,12 +30,13 @@ All Code is a terminal interface over three CLI adapters.
 - Claude Code uses print mode with JSON output.
 - OpenCode uses `opencode run --format json`.
 - Codex uses `codex exec --json` with the `workspace-write` sandbox.
+- Hermes uses `hermes acp` over JSON-RPC, preserving an ACP session across interactive turns.
 
 `src/parsers.ts` extracts final text and native session IDs from each event stream.
 
 The interactive Claude route keeps a print-mode `stream-json` process in `src/claude-stream-runner.ts`. It prestarts when Claude becomes active, accepts subsequent turns over the same stdin stream, and restarts with `--resume` when Claude's model, effort, or permission mode changes. The one-shot and delegated routes still use a separate process for each task.
 
-Interactive approvals use a separate path when the chosen permission mode needs one: Claude Code connects to the local approval broker, OpenCode uses a local server session, and Codex uses its app-server protocol. The resulting requests go through the same All Code approval pane. Headless `allcode run` and delegated tasks keep their non-interactive adapter path.
+Interactive approvals use a separate path when the chosen permission mode needs one: Claude Code connects to the local approval broker, OpenCode uses a local server session, Codex uses its app-server protocol, and Hermes sends ACP `session/request_permission` requests. The resulting requests go through the same All Code approval pane. Headless `allcode run` and delegated Hermes tasks deny ACP requests when no approval handler is available.
 
 ## Sessions
 
@@ -52,7 +53,7 @@ Writes use a temporary file followed by an atomic rename.
 
 ## Models
 
-`src/models.ts` reads native catalogs. Catalog requests run independently, so a missing agent does not block results from the others. Codex app-server discovery has a 12-second timeout.
+`src/models.ts` reads native catalogs. Catalog requests run independently, so a missing agent does not block results from the others. Codex app-server discovery has a 12-second timeout. Hermes discovery opens an ACP session and reads its advertised models.
 
 ## Delegated tasks
 
@@ -69,5 +70,5 @@ Every child adapter receives the MCP server configuration. This lets an agent se
 1. Add the route name to `src/types.ts`.
 2. Implement `AgentAdapter` in `src/adapters.ts`.
 3. Add native model discovery in `src/models.ts`.
-4. Add event parsing and invocation tests.
+4. Add event parsing and invocation tests; interactive agents may need a persistent protocol runner.
 5. Add the route to the picker and command reference.

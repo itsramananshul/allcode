@@ -3,7 +3,7 @@
 ## Workspace
 
 ```text
-allcode [--agent claude|opencode|codex] [--cwd PATH]
+allcode [--agent claude|opencode|codex|hermes] [--cwd PATH]
 ```
 
 `--agent` selects the initial route. `--cwd` opens another working directory.
@@ -20,6 +20,7 @@ Typing `/` opens the command palette immediately. Continue typing to filter it, 
 | `/agent claude` | Switch to Claude Code |
 | `/agent opencode` | Switch to OpenCode |
 | `/agent codex` | Switch to Codex |
+| `/agent hermes` | Switch to Hermes |
 | `/provider` | Alias for `/agent` |
 | `/model` | Open the model picker |
 | `/model <id>` | Select a native model ID |
@@ -44,6 +45,7 @@ Input that does not match an All Code command is sent to the active agent as a p
 | Claude Code | Manual, Accept edits, Auto, Don't ask, Plan, Bypass permissions |
 | OpenCode | Native rules, Ask, Auto-approve, Deny tools |
 | Codex | Read-only, Workspace write, Untrusted commands, No prompts, Full access |
+| Hermes | Ask before edits, Accept workspace edits, Don't ask for edits |
 
 When a provider asks for permission, the proposed command, tool input, or file change appears in a scrollable All Code prompt. Deny is selected by default. Use the arrow keys or Page Up/Down to inspect, Tab to switch between Deny and Allow once, then Enter to decide. `A` allows once, `D` or Escape denies. Bypass/auto-approve modes require a separate confirmation when selected. Provider and organization policies can still deny an action.
 
@@ -57,7 +59,7 @@ Approval prompts are part of the interactive `allcode` workspace. One-shot `allc
 allcode agents
 ```
 
-Prints the availability and resolved executable for Claude Code, OpenCode, and Codex.
+Prints the availability and resolved executable for Claude Code, OpenCode, Codex, and Hermes.
 
 ## Inspect models
 
@@ -66,6 +68,7 @@ allcode models
 allcode models claude
 allcode models opencode
 allcode models codex
+allcode models hermes
 ```
 
 ## Run one task
@@ -80,6 +83,7 @@ Examples:
 allcode run opencode --model opencode/big-pickle "find the failing test"
 allcode run codex "review the current diff"
 allcode run claude "explain the parser architecture"
+allcode run hermes --model copilot:gpt-4.1 "explain the parser architecture"
 ```
 
 The command prints the native session ID and final response as JSON.
@@ -117,5 +121,6 @@ The server exposes:
 | `ALL_CODE_CLAUDE_COMMAND` | Absolute path to the Claude Code executable |
 | `ALL_CODE_OPENCODE_COMMAND` | Absolute path to the OpenCode executable |
 | `ALL_CODE_CODEX_COMMAND` | Absolute path to the Codex executable |
+| `ALL_CODE_HERMES_COMMAND` | Absolute path to the Hermes executable |
 
 `ALL_CODE_DEPTH` and `ALL_CODE_HOST` are set internally for delegated processes.

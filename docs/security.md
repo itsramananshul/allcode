@@ -18,6 +18,7 @@ Use `;` between roots on Windows and `:` on macOS or Linux.
 - Claude Code starts in `acceptEdits` mode. When it requests an approval, All Code presents the action and waits for your decision.
 - OpenCode starts with its native permission rules. Select `/mode` → Ask to review its pending permissions inside All Code. Explicit deny entries in `OPENCODE_CONFIG_CONTENT` are preserved when All Code adds the Ask rule.
 - Codex starts with the `workspace-write` sandbox and an on-request approval policy in the interactive workspace.
+- Hermes starts in ACP `default` mode. Its ACP permission requests appear in All Code's approve/deny pane; without an interactive approver, All Code denies the request. Hermes's own configured provider and tool policies still apply.
 
 `/mode` also exposes each provider's auto-approve or bypass choices where available. They are opt-in and require a second confirmation. Bypass removes protections; use it only in an environment you trust. Managed provider policies can still refuse an action.
 

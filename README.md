@@ -4,7 +4,7 @@
 
 <h1 align="center">All Code</h1>
 
-<p align="center">Claude Code, OpenCode, and Codex in one terminal.</p>
+<p align="center">Claude Code, OpenCode, Codex, and Hermes in one terminal.</p>
 
 <p align="center">
   <a href="https://github.com/itsramananshul/allcode/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/itsramananshul/allcode/ci.yml?branch=main&style=flat-square&label=build" alt="Build status"></a>
@@ -23,6 +23,7 @@ All Code requires Node.js 22 or newer and at least one supported agent:
 - [Claude Code](https://github.com/anthropics/claude-code)
 - [OpenCode](https://github.com/anomalyco/opencode)
 - [Codex](https://github.com/openai/codex)
+- [Hermes Agent](https://github.com/NousResearch/hermes-agent)
 
 ```bash
 git clone https://github.com/itsramananshul/allcode.git
@@ -30,6 +31,8 @@ cd allcode
 npm install
 npm link
 ```
+
+Alternatively, download `allcode-0.2.0.tgz` from the [v0.2.0 release](https://github.com/itsramananshul/allcode/releases/tag/v0.2.0) and install that package with `npm install -g ./allcode-0.2.0.tgz`.
 
 Run it from a project directory:
 
@@ -83,7 +86,7 @@ While an agent runs, a rotating status word shows the elapsed time. In Windows T
 
 ![All Code working state](docs/images/working-state.svg)
 
-List models from OpenCode and Codex alongside All Code's Claude aliases:
+List models from OpenCode, Codex, and Hermes alongside All Code's Claude aliases:
 
 ```bash
 allcode models
@@ -98,6 +101,7 @@ All Code remembers the selected agent, one model per agent, native session IDs, 
 | Claude Code | `claude` | Claude account aliases and model IDs |
 | OpenCode | `opencode` | `opencode models`, including configured providers and the OpenCode Go catalog |
 | Codex | `codex` | Codex app-server model catalog |
+| Hermes | `hermes` | Hermes ACP model catalog and configured provider |
 
 Check the local installation:
 
@@ -105,14 +109,14 @@ Check the local installation:
 allcode agents
 ```
 
-All Code also gives the active agent an MCP broker. It can delegate a task to either of the other agents, wait for the result, and incorporate that result into the current job.
+All Code also gives the active agent an MCP broker. It can delegate a task to another installed agent, wait for the result, and incorporate that result into the current job. Hermes uses its ACP interface for shared sessions, model selection, and interactive approvals; its existing CLI authentication remains in place.
 
 ## Commands
 
 | Command | Action |
 | --- | --- |
 | `/agent` | Open the agent picker |
-| `/agent <name>` | Switch to Claude Code, OpenCode, or Codex |
+| `/agent <name>` | Switch to Claude Code, OpenCode, Codex, or Hermes |
 | `/model` | Open the model picker for the active agent |
 | `/model <id>` | Select an exact model ID |
 | `/models` | Browse and select a model from any agent |

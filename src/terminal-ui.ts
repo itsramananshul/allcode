@@ -21,7 +21,7 @@ export interface PickerItem<T extends string> {
 }
 
 export const commandItems: CommandItem[] = [
-  { command: "/agent", usage: "/agent [name]", description: "Choose Claude Code, OpenCode, or Codex" },
+  { command: "/agent", usage: "/agent [name]", description: "Choose Claude Code, OpenCode, Codex, or Hermes" },
   { command: "/model", usage: "/model [id]", description: "Choose a model for the active agent" },
   { command: "/models", usage: "/models", description: "Select a model from any agent" },
   { command: "/effort", usage: "/effort", description: "Choose reasoning effort for the active model" },

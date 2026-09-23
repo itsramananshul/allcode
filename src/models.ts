@@ -1,6 +1,7 @@
 import { execFile, spawn } from "node:child_process"
 import { createInterface } from "node:readline"
 import { resolveExecutable } from "./executable.js"
+import { HermesAcpRunner } from "./hermes-acp-runner.js"
 import type { AgentName } from "./types.js"
 
 export interface ModelEntry {
@@ -120,7 +121,7 @@ async function discoverCodexModels(): Promise<ModelEntry[]> {
   }, 12_000)
   try {
     await request(1, "initialize", {
-      clientInfo: { name: "allcode", title: "All Code", version: "0.1.0" },
+      clientInfo: { name: "allcode", title: "All Code", version: "0.2.0" },
       capabilities: { experimentalApi: true },
     })
     child.stdin.write(`${JSON.stringify({ method: "initialized" })}\n`)
@@ -145,6 +146,19 @@ function claudeModels(): ModelEntry[] {
 
 export async function discoverModels(agent: AgentName): Promise<ModelCatalog> {
   try {
+    if (agent === "hermes") {
+      const runner = new HermesAcpRunner()
+      try {
+        const state = await runner.listModels({ agent, cwd: process.cwd(), prompt: "" })
+        return { agent, models: [{ agent, id: "default", label: "Hermes configured default", isDefault: true },
+          ...state.availableModels.flatMap((entry) => {
+          if (typeof entry.modelId !== "string") return []
+          return [{ agent, id: entry.modelId, label: typeof entry.name === "string" ? entry.name : entry.modelId,
+            description: typeof entry.description === "string" ? entry.description : undefined,
+          }]
+        })] }
+      } finally { await runner.close() }
+    }
     if (agent === "opencode") {
       const output = await execText(resolveExecutable("opencode"), ["models"])
       return { agent, models: parseOpenCodeModels(output) }
@@ -157,10 +171,11 @@ export async function discoverModels(agent: AgentName): Promise<ModelCatalog> {
 }
 
 export async function discoverAllModels(): Promise<ModelCatalog[]> {
-  return await Promise.all((["claude", "opencode", "codex"] as const).map(discoverModels))
+  return await Promise.all((["claude", "opencode", "codex", "hermes"] as const).map(discoverModels))
 }
 
 export async function discoverEfforts(agent: AgentName, model: string | undefined): Promise<string[]> {
+  if (agent === "hermes") return ["default"]
   if (agent === "claude") return ["default", "low", "medium", "high", "xhigh", "max"]
   if (agent === "codex") {
     const catalog = await discoverModels("codex")

@@ -12,11 +12,11 @@ function usage(): never {
   console.error(`allcode
 
 Commands:
-  allcode [--agent claude|opencode|codex] [--cwd PATH]
-  allcode native [--agent claude|opencode|codex] [--cwd PATH]
+  allcode [--agent claude|opencode|codex|hermes] [--cwd PATH]
+  allcode native [--agent claude|opencode|codex|hermes] [--cwd PATH]
   agents
-  models [claude|opencode|codex]
-  run <claude|opencode|codex> [--cwd PATH] [--model ID] [--session ID] <prompt>
+  models [claude|opencode|codex|hermes]
+  run <claude|opencode|codex|hermes> [--cwd PATH] [--model ID] [--session ID] <prompt>
   mcp
 
 Environment:

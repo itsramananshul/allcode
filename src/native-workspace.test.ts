@@ -13,6 +13,11 @@ describe("/agent interception", () => {
     expect(input.feed("/agent opencode\r")).toEqual({ forward: "/agent opencode", agent: "opencode", showPicker: false })
   })
 
+  it("recognizes Hermes as an explicit native agent", () => {
+    const input = new AgentCommandInterceptor()
+    expect(input.feed("/agent hermes\r")).toEqual({ forward: "/agent hermes", agent: "hermes", showPicker: false })
+  })
+
   it("opens the picker for bare /agent", () => {
     const input = new AgentCommandInterceptor()
     expect(input.feed("/agent\r")).toEqual({ forward: "/agent", agent: undefined, showPicker: true })
