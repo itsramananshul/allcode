@@ -2,6 +2,7 @@ import { stdin as input, stdout as output } from "node:process"
 import { emitKeypressEvents } from "node:readline"
 import { discoverAllModels, discoverEfforts, discoverModels, type ModelEntry } from "./models.js"
 import { runAgent } from "./runner.js"
+import { ClaudeStreamRunner } from "./claude-stream-runner.js"
 import { SharedSession } from "./session.js"
 import { pickItem, promptApproval, readCommandLine, type PickerItem } from "./terminal-ui.js"
 import { agentNames, type AgentName } from "./types.js"
@@ -175,6 +176,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
   let permissionMode = shared.permissionMode(agent) ?? defaultPermissionMode(agent)
   const history: string[] = []
   const screen = new WorkspaceScreen(output, cwd, agentLabel(agent), model ?? "default model")
+  const claude = new ClaudeStreamRunner()
   const inputWasRaw = Boolean(input.isRaw)
   const inputWasFlowing = input.readableFlowing === true
   emitKeypressEvents(input)
@@ -184,6 +186,18 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
   try {
     screen.start()
     screen.setExecutionSettings(effort, permissionMode)
+    const prepareClaude = async (): Promise<void> => {
+      if (agent !== "claude") return
+      try {
+        await claude.prepare({
+          agent: "claude", cwd, prompt: "", model: model === "default" ? undefined : model,
+          effort, permissionMode, sessionId: shared.nativeSession("claude"),
+        })
+      } catch (error) {
+        screen.append(`Claude startup failed: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+    await prepareClaude()
     while (true) {
       const line = (await readCommandLine(history, input, output, screen)).trim()
       if (!line) continue
@@ -204,6 +218,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
           shared.setEffort(agent, effort)
           screen.setExecutionSettings(effort, permissionMode)
           screen.append(`Reasoning effort: ${effort ?? "provider default"}`)
+          await prepareClaude()
         } catch (error) { screen.append(`Effort discovery failed: ${error instanceof Error ? error.message : String(error)}`) }
         continue
       }
@@ -212,6 +227,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         shared.setPermissionMode(agent, permissionMode)
         screen.setExecutionSettings(effort, permissionMode)
         screen.append(`Permission mode: ${permissionMode ?? "native default"}`)
+        await prepareClaude()
         continue
       }
       if (command === "/models") {
@@ -227,6 +243,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
           screen.setExecutionSettings(effort, permissionMode)
           screen.setRoute(agentLabel(agent), model)
           screen.append(`Active model: ${agentLabel(agent)} · ${model}`)
+          await prepareClaude()
         }
         continue
       }
@@ -242,6 +259,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         screen.setExecutionSettings(effort, permissionMode)
         screen.setRoute(agentLabel(agent), model ?? "default model")
         screen.append(`Active agent: ${agentLabel(agent)}`)
+        await prepareClaude()
         continue
       }
       if (command === "/model") {
@@ -252,12 +270,13 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         screen.setRoute(agentLabel(agent), model ?? "default model")
         screen.setExecutionSettings(effort, permissionMode)
         screen.append(`Active model: ${model ?? "default"}`)
+        await prepareClaude()
         continue
       }
       const animation = startWorkingAnimation(agent, screen)
       let approvalQueue: Promise<void> = Promise.resolve()
       try {
-        const result = await runAgent({
+        const request = {
           agent,
           cwd,
           model: model === "default" ? undefined : model,
@@ -265,7 +284,8 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
           permissionMode,
           sessionId: shared.nativeSession(agent),
           prompt: shared.promptFor(agent, line),
-        }, undefined, ({ toolName, input: toolInput }) => {
+        }
+        const onApproval = ({ toolName, input: toolInput }: { toolName: string; input: Record<string, unknown> }) => {
           const decision = approvalQueue.then(async () => {
             animation.pause()
             try { return await askApproval(toolName, toolInput, screen) }
@@ -273,7 +293,10 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
           })
           approvalQueue = decision.then(() => {}, () => {})
           return decision
-        })
+        }
+        const result = agent === "claude"
+          ? await claude.run({ ...request, agent: "claude" }, onApproval)
+          : await runAgent(request, undefined, onApproval)
         if (result.sessionId) shared.setNativeSession(agent, result.sessionId)
         shared.recordTurn(agent, line, result.finalText.trim())
         const elapsed = animation.stop()
@@ -286,6 +309,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
       }
     }
   } finally {
+    await claude.close()
     screen.stop()
     input.setRawMode(inputWasRaw)
     if (!inputWasFlowing) input.pause()

@@ -58,7 +58,7 @@ The provider currently has no serving endpoint for that model. Select another en
 
 ## Claude Code takes longer than its native terminal
 
-All Code starts a new Claude Code print-mode process for each request, then resumes the saved native session. That startup is included in the time shown beneath the reply. Native Claude Code keeps its interactive process open, so a short reply there can feel faster. Installed hooks, plugins, and MCP servers may add to each launch. `allcode native --agent claude` opens Claude's own terminal interface if you need that behavior; it does not use All Code's shared workspace interface.
+Interactive All Code keeps one Claude Code streaming process open across turns. It starts when you open a Claude workspace or switch to Claude, so the next request can reuse it. The first request may still wait while Claude connects your MCP servers and permission tool; changing Claude's model, effort, or permission mode also restarts that process. Later requests with unchanged settings avoid this startup. One-shot `allcode run claude` and background delegated tasks still start separate processes.
 
 ## Context did not follow an agent switch
 

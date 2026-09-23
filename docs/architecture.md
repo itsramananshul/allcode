@@ -33,6 +33,8 @@ All Code is a terminal interface over three CLI adapters.
 
 `src/parsers.ts` extracts final text and native session IDs from each event stream.
 
+The interactive Claude route keeps a print-mode `stream-json` process in `src/claude-stream-runner.ts`. It prestarts when Claude becomes active, accepts subsequent turns over the same stdin stream, and restarts with `--resume` when Claude's model, effort, or permission mode changes. The one-shot and delegated routes still use a separate process for each task.
+
 Interactive approvals use a separate path when the chosen permission mode needs one: Claude Code connects to the local approval broker, OpenCode uses a local server session, and Codex uses its app-server protocol. The resulting requests go through the same All Code approval pane. Headless `allcode run` and delegated tasks keep their non-interactive adapter path.
 
 ## Sessions
