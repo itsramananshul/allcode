@@ -23,7 +23,10 @@ export interface PickerItem<T extends string> {
 export const commandItems: CommandItem[] = [
   { command: "/agent", usage: "/agent [name]", description: "Choose Claude Code, OpenCode, or Codex" },
   { command: "/model", usage: "/model [id]", description: "Choose a model for the active agent" },
-  { command: "/models", usage: "/models", description: "Show models from every agent" },
+  { command: "/models", usage: "/models", description: "Select a model from any agent" },
+  { command: "/effort", usage: "/effort", description: "Choose reasoning effort for the active model" },
+  { command: "/mode", usage: "/mode", description: "Choose the active agent's permission mode" },
+  { command: "/permissions", usage: "/permissions", description: "Alias for /mode" },
   { command: "/status", usage: "/status", description: "Show the active route and session" },
   { command: "/clear", usage: "/clear", description: "Clear the workspace transcript" },
   { command: "/help", usage: "/help", description: "Show the command reference" },
@@ -133,7 +136,7 @@ export async function readCommandLine(
     const updateValue = (next: string, nextCursor = next.length): void => {
       value = next
       cursor = nextCursor
-      selected = 0
+      selected = Math.max(0, filterCommandItems(next).findIndex((item) => item.command === next.toLowerCase()))
       dismissed = false
       render()
     }
@@ -214,17 +217,25 @@ export async function pickItem<T extends string>(
   let query = ""
   let cursor = 0
   let selected = Math.max(0, items.findIndex((item) => item.value === options.current))
-  const limit = options.limit ?? 10
+  const limit = Math.min(options.limit ?? 10, screen ? Math.max(1, (output.rows ?? 24) - 15) : Infinity)
   const prompt = "Filter: "
   const { wasRaw, wasFlowing } = startRawInput(input)
   if (!screen) output.write("\x1b[s")
 
   const render = (): void => {
     const matches = filterPickerItems(query, items)
-    if (selected >= Math.min(matches.length, limit)) selected = Math.max(0, Math.min(matches.length, limit) - 1)
-    const shown = matches.slice(0, limit)
+    if (selected >= matches.length) selected = Math.max(0, matches.length - 1)
+    const first = Math.max(0, selected - limit + 1)
+    const shown = matches.slice(first, first + limit)
     if (screen) {
-      screen.setInput(query, cursor, shown.map((item) => ({ label: item.label, description: item.description })), selected)
+      screen.setInput(
+        query,
+        cursor,
+        shown.map((item, index) => ({ label: `${first + index + 1}. ${item.label}`, description: item.description })),
+        selected - first,
+        title,
+        `${matches.length ? `${selected + 1}/${matches.length} · ` : ""}↑↓ browse · Enter select · Esc cancel · type to filter`,
+      )
       return
     }
     const width = Math.max(40, output.columns ?? 100)
@@ -238,10 +249,10 @@ export async function pickItem<T extends string>(
       shown.forEach((item, index) => {
         const description = item.description ? `  ${item.description}` : ""
         const content = clip(`  ${item.label.padEnd(labelWidth)}${description}`, width - 1)
-        output.write(index === selected ? `${inverse}${white}${content}${reset}` : `${gray}${content}${reset}`)
+        output.write(index + first === selected ? `${inverse}${white}${content}${reset}` : `${gray}${content}${reset}`)
         if (index < shown.length - 1) output.write("\n")
       })
-      if (matches.length > limit) output.write(`\n${gray}  ${matches.length - limit} more — type to filter${reset}`)
+      if (matches.length > limit) output.write(`\n${gray}  ${selected + 1}/${matches.length} — ↑↓ to browse, type to filter${reset}`)
     }
     output.write("\x1b[u\x1b[1B\r")
     if (prompt.length + cursor > 0) output.write(`\x1b[${prompt.length + cursor}C`)
@@ -258,10 +269,9 @@ export async function pickItem<T extends string>(
 
     const onKeypress = (text: string | undefined, key: Key): void => {
       const matches = filterPickerItems(query, items)
-      const shown = matches.slice(0, limit)
       if ((key.ctrl && key.name === "c") || key.name === "escape") { finish(undefined); return }
-      if (key.name === "up") { selected = shown.length ? (selected - 1 + shown.length) % shown.length : 0; render(); return }
-      if (key.name === "down") { selected = shown.length ? (selected + 1) % shown.length : 0; render(); return }
+      if (key.name === "up") { selected = matches.length ? (selected - 1 + matches.length) % matches.length : 0; render(); return }
+      if (key.name === "down") { selected = matches.length ? (selected + 1) % matches.length : 0; render(); return }
       if (key.name === "left") { cursor = Math.max(0, cursor - 1); render(); return }
       if (key.name === "right") { cursor = Math.min(query.length, cursor + 1); render(); return }
       if (key.name === "backspace") {
@@ -273,8 +283,8 @@ export async function pickItem<T extends string>(
         }
         return
       }
-      if (key.name === "return" || key.name === "enter") {
-        const chosen = shown[selected]
+      if (key.name === "return" || key.name === "enter" || key.name === "tab") {
+        const chosen = matches[selected]
         if (chosen) finish(chosen.value)
         else if (options.allowCustom && query.trim()) finish(query.trim() as T)
         return
@@ -290,5 +300,38 @@ export async function pickItem<T extends string>(
 
     input.on("keypress", onKeypress)
     render()
+  })
+}
+
+export async function promptApproval(
+  title: string,
+  details: string,
+  screen: WorkspaceScreen,
+  input: ReadStream = defaultInput,
+): Promise<boolean> {
+  const { wasRaw, wasFlowing } = startRawInput(input)
+  screen.showApproval(title, details)
+  return await new Promise<boolean>((resolve) => {
+    const finish = (approved: boolean): void => {
+      input.off("keypress", onKeypress)
+      stopRawInput(input, wasRaw, wasFlowing)
+      screen.closeApproval()
+      resolve(approved)
+    }
+    const onKeypress = (text: string | undefined, key: Key): void => {
+      if ((key.ctrl && key.name === "c") || key.name === "escape") { finish(false); return }
+      if (key.name === "up") { screen.scrollApproval(-1); return }
+      if (key.name === "down") { screen.scrollApproval(1); return }
+      if (key.name === "pageup") { screen.scrollApproval(-10); return }
+      if (key.name === "pagedown") { screen.scrollApproval(10); return }
+      if (key.name === "tab" || key.name === "left" || key.name === "right") {
+        screen.selectApproval(screen.approvalSelection() === "deny" ? "allow" : "deny")
+        return
+      }
+      if (key.name === "return" || key.name === "enter") { finish(screen.approvalSelection() === "allow"); return }
+      if (text?.toLowerCase() === "a") { finish(true); return }
+      if (text?.toLowerCase() === "d") { finish(false) }
+    }
+    input.on("keypress", onKeypress)
   })
 }

@@ -1,4 +1,6 @@
 import type { WriteStream } from "node:tty"
+import { readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 
 export interface ScreenChoice {
   label: string
@@ -10,6 +12,12 @@ const white = "\x1b[97m"
 const inverse = "\x1b[7m"
 const reset = "\x1b[0m"
 const ansi = /\x1b\[[0-9;]*m/g
+const sixelPath = fileURLToPath(new URL("../assets/allcode-mascot.sixel", import.meta.url))
+
+function terminalMascot(): string {
+  if (process.platform !== "win32" || !process.env.WT_SESSION) return ""
+  try { return readFileSync(sixelPath, "ascii") } catch { return "" }
+}
 
 function plain(value: string): string {
   return value.replace(ansi, "")
@@ -39,9 +47,15 @@ export class WorkspaceScreen {
   private cursor = 0
   private choices: ScreenChoice[] = []
   private selected = 0
+  private pickerTitle = ""
+  private pickerStatus = ""
+  private approval?: { title: string; details: string; offset: number; selected: "deny" | "allow" }
   private working = ""
   private agent = ""
   private model = ""
+  private effort = ""
+  private permissionMode = ""
+  private readonly mascot = terminalMascot()
   private readonly onResize = (): void => this.render()
 
   constructor(
@@ -71,6 +85,12 @@ export class WorkspaceScreen {
     this.render()
   }
 
+  setExecutionSettings(effort: string | undefined, permissionMode: string | undefined): void {
+    this.effort = effort ?? "default effort"
+    this.permissionMode = permissionMode ?? "native permissions"
+    this.render()
+  }
+
   append(value: string): void {
     this.transcript.push(...value.replace(/\n$/, "").split("\n"))
     this.render()
@@ -86,27 +106,55 @@ export class WorkspaceScreen {
     this.render()
   }
 
-  setInput(value: string, cursor: number, choices: ScreenChoice[] = [], selected = 0): void {
+  setInput(value: string, cursor: number, choices: ScreenChoice[] = [], selected = 0, title = "", status = ""): void {
     this.input = value
     this.cursor = cursor
     this.choices = choices
     this.selected = selected
+    this.pickerTitle = title
+    this.pickerStatus = status
     this.render()
   }
+
+  showApproval(title: string, details: string): void {
+    this.approval = { title, details, offset: 0, selected: "deny" }
+    this.render()
+  }
+
+  scrollApproval(delta: number): void {
+    if (!this.approval) return
+    const width = Math.max(23, (this.output.columns ?? 80) - 3)
+    const count = 2 + this.approval.details.split("\n").flatMap((line) => wrap(line, width)).length
+    const page = Math.max(1, (this.output.rows ?? 24) - 13)
+    this.approval.offset = Math.max(0, Math.min(Math.max(0, count - page), this.approval.offset + delta))
+    this.render()
+  }
+
+  selectApproval(value: "deny" | "allow"): void {
+    if (!this.approval) return
+    this.approval.selected = value
+    this.render()
+  }
+
+  approvalSelection(): "deny" | "allow" { return this.approval?.selected ?? "deny" }
+
+  closeApproval(): void { this.approval = undefined; this.render() }
 
   private render(): void {
     const rows = Math.max(12, this.output.rows ?? 24)
     const columns = Math.max(24, this.output.columns ?? 80)
     const width = columns - 1
     const frame = Array<string>(rows).fill("")
-    frame[0] = `${white}  ╭───────╮  All Code v0.1.0${reset}`
-    frame[1] = `${white}  │ < ■ > │  ${this.agent}${reset} ${gray}· ${this.model}${reset}`
-    frame[2] = `${white}  ╰───────╯${reset}  ${gray}${crop(this.cwd, Math.max(1, width - 15))}${reset}`
-    frame[4] = `${gray}  One workspace. Every coding agent. Type / for commands.${reset}`
+    const heading = this.mascot ? "                    " : "  "
+    frame[0] = `${white}${heading}All Code v0.1.0${reset}`
+    frame[1] = `${white}${heading}${this.agent}${reset} ${gray}· ${this.model}${reset}`
+    frame[2] = `${gray}${heading}${crop(this.cwd, Math.max(1, width - heading.length))}${reset}`
+    frame[6] = `${gray}  One workspace. Every coding agent. Type / for commands.${reset}`
 
-    const menuCapacity = Math.max(0, rows - 11)
-    const shownChoices = this.choices.slice(0, menuCapacity)
+    const menuCapacity = Math.max(0, rows - (this.pickerTitle ? 15 : 13))
+    const shownChoices = this.approval ? [] : this.choices.slice(0, menuCapacity)
     const menuStart = rows - 4 - shownChoices.length
+    if (this.pickerTitle) frame[menuStart - 2] = `${white}  ${crop(this.pickerTitle, width - 2)}${reset}`
     for (let index = 0; index < shownChoices.length; index += 1) {
       const choice = shownChoices[index]!
       const label = choice.label.padEnd(Math.min(28, Math.max(...shownChoices.map((item) => item.label.length))))
@@ -114,25 +162,35 @@ export class WorkspaceScreen {
       frame[menuStart + index] = index === this.selected ? `${inverse}${white}${line}${reset}` : `${gray}${line}${reset}`
     }
 
-    const bodyEnd = menuStart - 1
-    const bodyStart = 6
+    const bodyEnd = menuStart - (this.pickerTitle ? 3 : 1)
+    const bodyStart = 8
     const bodyHeight = Math.max(0, bodyEnd - bodyStart)
     const transcript = this.transcript.flatMap((line) => wrap(line, width))
     if (this.working) transcript.push(...wrap(`◈ ${this.working}`, width))
-    const visible = transcript.slice(-bodyHeight)
+    const approvalLines = this.approval
+      ? [`${white}${this.approval.title}${reset}`, "", ...this.approval.details.split("\n").flatMap((line) => wrap(line, width))]
+      : []
+    const visible = this.approval
+      ? approvalLines.slice(this.approval.offset, this.approval.offset + bodyHeight)
+      : transcript.slice(-bodyHeight)
     for (let index = 0; index < visible.length; index += 1) frame[bodyStart + index] = visible[index]!
 
     frame[rows - 4] = `${gray}${"─".repeat(width)}${reset}`
     const inputWidth = Math.max(1, width - 3)
     const inputStart = Math.max(0, this.cursor - inputWidth + 1)
-    frame[rows - 3] = `${white}› ${this.input.slice(inputStart, inputStart + inputWidth)}${reset}`
+    frame[rows - 3] = this.approval
+      ? `  ${this.approval.selected === "deny" ? inverse : ""}D Deny${reset}    ${this.approval.selected === "allow" ? inverse : ""}A Allow once${reset}`
+      : `${white}› ${this.input.slice(inputStart, inputStart + inputWidth)}${reset}`
     frame[rows - 2] = `${gray}${"─".repeat(width)}${reset}`
-    frame[rows - 1] = `${gray}  ${this.choices.length ? "↑↓ browse · Tab complete · Enter run · Esc close" : `${this.agent} · ${this.model}`}${reset}`
+    frame[rows - 1] = this.approval
+      ? `${gray}  ↑↓/PgUp/PgDn inspect request · Tab switch · Enter choose · Esc deny${reset}`
+      : `${gray}  ${this.pickerStatus || (this.choices.length ? "↑↓ browse · Tab complete · Enter run · Esc close" : crop(`${this.agent} · ${this.model} · ${this.effort} · ${this.permissionMode}`, width - 2))}${reset}`
 
     let buffer = "\x1b[?25l"
     for (let row = 0; row < rows; row += 1) buffer += `\x1b[${row + 1};1H\x1b[2K${frame[row]}`
+    if (this.mascot) buffer += `\x1b[1;2H${this.mascot}`
     const cursorColumn = Math.max(3, Math.min(columns, 3 + this.cursor - inputStart))
-    buffer += `\x1b[${rows - 2};${cursorColumn}H\x1b[?25h`
+    buffer += `\x1b[${rows - 2};${cursorColumn}H${this.approval ? "\x1b[?25l" : "\x1b[?25h"}`
     this.output.write(buffer)
   }
 }

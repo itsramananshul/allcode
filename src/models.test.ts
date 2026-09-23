@@ -13,9 +13,9 @@ describe("model discovery parsers", () => {
 
   it("parses visible Codex models", () => {
     const models = parseCodexModels({ data: [
-      { model: "gpt-test", displayName: "GPT Test", description: "Test", hidden: false, isDefault: true },
+      { model: "gpt-test", displayName: "GPT Test", description: "Test", hidden: false, isDefault: true, supportedReasoningEfforts: [{ reasoningEffort: "low" }, { reasoningEffort: "high" }] },
       { model: "hidden", displayName: "Hidden", hidden: true },
     ] })
-    expect(models).toEqual([expect.objectContaining({ id: "gpt-test", label: "GPT Test", isDefault: true })])
+    expect(models).toEqual([expect.objectContaining({ id: "gpt-test", label: "GPT Test", isDefault: true, efforts: ["low", "high"] })])
   })
 })

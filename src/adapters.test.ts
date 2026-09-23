@@ -12,11 +12,38 @@ describe("agent adapters", () => {
     expect(invocation.args.join(" ")).not.toContain("bypassPermissions")
   })
 
+  it("routes Claude manual approvals to All Code and passes effort", () => {
+    const invocation = new ClaudeAdapter().buildInvocation({
+      ...base, permissionMode: "manual", effort: "high", approval: { port: 41000, token: "test-token" },
+    }, "claude.exe")
+    expect(invocation.args).toEqual(expect.arrayContaining([
+      "--permission-mode", "manual", "--permission-prompts", "host",
+      "--permission-prompt-tool", "mcp__allcode__approval_prompt", "--effort", "high",
+    ]))
+    expect(invocation.env?.ALL_CODE_APPROVAL_PORT).toBe("41000")
+  })
+
   it("passes OpenCode a native provider/model ID", () => {
     const invocation = new OpenCodeAdapter().buildInvocation(
       { ...base, agent: "opencode", model: "opencode/big-pickle" }, "opencode.exe",
     )
     expect(invocation.args).toEqual(expect.arrayContaining(["--model", "opencode/big-pickle", "Fix the tests"]))
+  })
+
+  it("asks OpenCode for permissions without replacing configured denials", () => {
+    const previous = process.env.OPENCODE_CONFIG_CONTENT
+    process.env.OPENCODE_CONFIG_CONTENT = JSON.stringify({ permission: { "*": "allow", edit: "deny" } })
+    try {
+      const invocation = new OpenCodeAdapter().buildInvocation({
+        ...base, agent: "opencode", permissionMode: "ask", effort: "high",
+      }, "opencode.exe")
+      expect(invocation.args).toContain("--variant")
+      const config = JSON.parse(invocation.env!.OPENCODE_CONFIG_CONTENT!) as { permission: Record<string, string> }
+      expect(config.permission).toMatchObject({ "*": "ask", edit: "deny" })
+    } finally {
+      if (previous === undefined) delete process.env.OPENCODE_CONFIG_CONTENT
+      else process.env.OPENCODE_CONFIG_CONTENT = previous
+    }
   })
 
   it("preserves configured workspace roots and delegation depth", () => {
@@ -58,5 +85,10 @@ describe("agent adapters", () => {
     )
     expect(invocation.args).toEqual(expect.arrayContaining(["--sandbox", "workspace-write", "resume", "019c-session", "-"]))
     expect(invocation.args.join(" ")).not.toContain("dangerously")
+  })
+
+  it("passes Codex effort through its configuration", () => {
+    const invocation = new CodexAdapter().buildInvocation({ ...base, agent: "codex", effort: "high", permissionMode: "workspace-write" }, "codex.exe")
+    expect(invocation.args).toContain('model_reasoning_effort="high"')
   })
 })

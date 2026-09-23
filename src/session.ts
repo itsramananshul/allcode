@@ -13,6 +13,8 @@ interface SessionState {
   version: 1
   activeAgent: AgentName
   models: Partial<Record<AgentName, string>>
+  efforts?: Partial<Record<AgentName, string>>
+  permissionModes?: Partial<Record<AgentName, string>>
   nativeSessions: Partial<Record<AgentName, string>>
   delivered: Partial<Record<AgentName, number>>
   messages: SharedMessage[]
@@ -22,6 +24,8 @@ const defaultState = (agent: AgentName): SessionState => ({
   version: 1,
   activeAgent: agent,
   models: {},
+  efforts: {},
+  permissionModes: {},
   nativeSessions: {},
   delivered: {},
   messages: [],
@@ -60,6 +64,20 @@ export class SharedSession {
   setModel(agent: AgentName, value: string | undefined): void {
     if (value) this.#state.models[agent] = value
     else delete this.#state.models[agent]
+    this.save()
+  }
+  effort(agent: AgentName): string | undefined { return this.#state.efforts?.[agent] }
+  setEffort(agent: AgentName, value: string | undefined): void {
+    this.#state.efforts ??= {}
+    if (value && value !== "default") this.#state.efforts[agent] = value
+    else delete this.#state.efforts[agent]
+    this.save()
+  }
+  permissionMode(agent: AgentName): string | undefined { return this.#state.permissionModes?.[agent] }
+  setPermissionMode(agent: AgentName, value: string | undefined): void {
+    this.#state.permissionModes ??= {}
+    if (value) this.#state.permissionModes[agent] = value
+    else delete this.#state.permissionModes[agent]
     this.save()
   }
   nativeSession(agent: AgentName): string | undefined { return this.#state.nativeSessions[agent] }

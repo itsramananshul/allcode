@@ -15,11 +15,15 @@ Use `;` between roots on Windows and `:` on macOS or Linux.
 
 ## Agent permissions
 
-- Claude Code runs in `acceptEdits` mode. Operations that still require a prompt are denied in non-interactive execution.
-- OpenCode uses the permissions in its OpenCode configuration.
-- Codex runs with the `workspace-write` sandbox.
+- Claude Code starts in `acceptEdits` mode. When it requests an approval, All Code presents the action and waits for your decision.
+- OpenCode starts with its native permission rules. Select `/mode` → Ask to review its pending permissions inside All Code. Explicit deny entries in `OPENCODE_CONFIG_CONTENT` are preserved when All Code adds the Ask rule.
+- Codex starts with the `workspace-write` sandbox and an on-request approval policy in the interactive workspace.
 
-All Code does not select bypass-permission modes.
+`/mode` also exposes each provider's auto-approve or bypass choices where available. They are opt-in and require a second confirmation. Bypass removes protections; use it only in an environment you trust. Managed provider policies can still refuse an action.
+
+All Code's approval prompt defaults to Deny. It displays the provider's tool input, command, or file change in a scrollable review window. Escape denies. If the approval transport fails, the request is denied rather than silently approved.
+
+The one-shot `allcode run` command and background MCP-delegated tasks remain headless. They do not show All Code's approval prompt; actions requiring a human decision in those paths are subject to each adapter's non-interactive defaults.
 
 ## Credentials
 

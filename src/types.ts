@@ -9,6 +9,9 @@ export interface RunRequest {
   model?: string
   sessionId?: string
   timeoutMs?: number
+  effort?: string
+  permissionMode?: string
+  approval?: { port: number; token: string }
 }
 
 export interface Invocation {

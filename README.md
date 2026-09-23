@@ -67,9 +67,11 @@ Choose a model from the active agent:
 › /model opencode/big-pickle
 ```
 
-The agent and model pickers are searchable and keyboard-driven.
+The agent and model pickers are searchable and keyboard-driven. `/model` browses the active agent's models; `/models` browses all discovered models and switches agents when you select one. Use the arrow keys and Enter—you do not need to type a model ID.
 
-While an agent runs, the small All Code face blinks beside a rotating status word and elapsed time.
+`/effort` lists the reasoning levels advertised by the selected model. `/mode` opens that agent's permission modes. Claude Code, OpenCode Ask mode, and Codex's interactive modes pause for approval when the provider requests it; All Code shows the proposed action and lets you allow it once or deny it. The default choice is Deny. Use the arrow keys or Page Up/Down to inspect a long request, Tab to switch the choice, and Enter to confirm. `/status` shows the current effort and mode.
+
+While an agent runs, a rotating status word shows the elapsed time. In Windows Terminal, the header displays the full All Code mascot image.
 
 ![All Code working state](docs/images/working-state.svg)
 
@@ -105,7 +107,9 @@ All Code also gives the active agent an MCP broker. It can delegate a task to ei
 | `/agent <name>` | Switch to Claude Code, OpenCode, or Codex |
 | `/model` | Open the model picker for the active agent |
 | `/model <id>` | Select an exact model ID |
-| `/models` | Show all discovered model catalogs |
+| `/models` | Browse and select a model from any agent |
+| `/effort` | Choose reasoning effort for the active model |
+| `/mode` | Choose the active agent's permission mode |
 | `/status` | Show the current route and session |
 | `/clear` | Clear the workspace transcript |
 | `/help` | Show commands |

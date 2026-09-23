@@ -27,14 +27,19 @@ function bridgeCommand(): string {
   return fileURLToPath(new URL("./cli.js", import.meta.url))
 }
 
-function claudeBridge(agent: AgentName, cwd: string): string {
+function claudeBridge(agent: AgentName, cwd: string, approval?: RunRequest["approval"]): string {
+  const env = childEnv(agent, cwd)
+  if (approval) {
+    env.ALL_CODE_APPROVAL_PORT = String(approval.port)
+    env.ALL_CODE_APPROVAL_TOKEN = approval.token
+  }
   return JSON.stringify({
     mcpServers: {
       allcode: {
         type: "stdio",
         command: process.execPath,
         args: [bridgeCommand(), "mcp"],
-        env: childEnv(agent, cwd),
+        env,
       },
     },
   })
@@ -64,15 +69,26 @@ export class ClaudeAdapter extends BaseAdapter {
   buildInvocation(request: RunRequest, executable: string): Invocation {
     validateOptionalToken("model", request.model)
     validateOptionalToken("session ID", request.sessionId)
+    const mode = request.permissionMode ?? "acceptEdits"
+    if (!["acceptEdits", "auto", "bypassPermissions", "manual", "dontAsk", "plan"].includes(mode)) {
+      throw new Error(`Unsupported Claude Code permission mode: ${mode}`)
+    }
     const args = [
       "-p", "--output-format", "json",
-      "--permission-mode", "acceptEdits",
-      "--permission-prompts", "none",
-      "--mcp-config", claudeBridge(this.name, request.cwd),
+      "--permission-mode", mode,
+      "--permission-prompts", request.approval ? "host" : "none",
+      "--mcp-config", claudeBridge(this.name, request.cwd, request.approval),
     ]
+    if (request.approval) args.push("--permission-prompt-tool", "mcp__allcode__approval_prompt")
+    if (request.effort) args.push("--effort", request.effort)
     if (request.model) args.push("--model", request.model)
     if (request.sessionId) args.push("--resume", request.sessionId)
-    return { command: executable, args, stdin: request.prompt, cwd: request.cwd, env: childEnv(this.name, request.cwd) }
+    const env = childEnv(this.name, request.cwd)
+    if (request.approval) {
+      env.ALL_CODE_APPROVAL_PORT = String(request.approval.port)
+      env.ALL_CODE_APPROVAL_TOKEN = request.approval.token
+    }
+    return { command: executable, args, stdin: request.prompt, cwd: request.cwd, env }
   }
 }
 
@@ -84,7 +100,11 @@ export class OpenCodeAdapter extends BaseAdapter {
     validateOptionalToken("model", request.model)
     validateOptionalToken("session ID", request.sessionId)
     const args = ["run", "--format", "json", "--dir", request.cwd]
+    const mode = request.permissionMode ?? "native"
+    if (!["native", "ask", "auto", "deny"].includes(mode)) throw new Error(`Unsupported OpenCode permission mode: ${mode}`)
+    if (mode === "auto") args.push("--auto")
     if (request.model) args.push("--model", request.model)
+    if (request.effort) args.push("--variant", request.effort)
     if (request.sessionId) args.push("--session", request.sessionId)
     args.push(request.prompt)
     const nextEnv = childEnv(this.name, request.cwd)
@@ -102,8 +122,16 @@ export class OpenCodeAdapter extends BaseAdapter {
       enabled: true,
       environment: nextEnv,
     }
+    const configuredPermissions = existing.permission && typeof existing.permission === "object"
+      ? existing.permission as Record<string, unknown> : {}
+    const { "*": wildcard, ...specificPermissions } = configuredPermissions
     nextEnv.OPENCODE_CONFIG_CONTENT = JSON.stringify({
       ...existing,
+      ...(mode === "ask" ? { permission: existing.permission === "deny" ? "deny" : {
+        "*": wildcard === "deny" ? "deny" : "ask",
+        ...specificPermissions,
+      } } : {}),
+      ...(mode === "deny" ? { permission: { "*": "deny" } } : {}),
       mcp: { ...existing.mcp, allcode: allCodeMcp },
     })
     return { command: executable, args, cwd: request.cwd, env: nextEnv }
@@ -117,6 +145,9 @@ export class CodexAdapter extends BaseAdapter {
   buildInvocation(request: RunRequest, executable: string): Invocation {
     validateOptionalToken("model", request.model)
     validateOptionalToken("session ID", request.sessionId)
+    if (request.permissionMode && !["read-only", "workspace-write", "untrusted", "never", "bypass"].includes(request.permissionMode)) {
+      throw new Error(`Unsupported Codex permission mode: ${request.permissionMode}`)
+    }
     const args = ["exec", "--json", "--sandbox", "workspace-write", "-C", request.cwd, "--skip-git-repo-check"]
     const nextEnv = childEnv(this.name, request.cwd)
     args.push(
@@ -126,6 +157,7 @@ export class CodexAdapter extends BaseAdapter {
       "-c", `mcp_servers.allcode.env.ALL_CODE_ALLOWED_ROOTS=${JSON.stringify(request.cwd)}`,
       "-c", `mcp_servers.allcode.env.ALL_CODE_DEPTH=${JSON.stringify(nextEnv.ALL_CODE_DEPTH)}`,
     )
+    if (request.effort) args.push("-c", `model_reasoning_effort=${JSON.stringify(request.effort)}`)
     if (request.model) args.push("--model", request.model)
     if (request.sessionId) args.push("resume", request.sessionId, "-")
     else args.push("-")

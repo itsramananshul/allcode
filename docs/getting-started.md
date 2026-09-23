@@ -69,7 +69,7 @@ Switch agents at any point:
 
 The next agent receives the shared conversation and continues in the same working directory.
 
-While a task runs, the small mascot face blinks beside a changing status word, elapsed time, and the active agent. The response appears beneath it when the task completes.
+While a task runs, a changing status word shows elapsed time and the active agent. The response appears beneath it when the task completes. Windows Terminal displays the full mascot image in the header.
 
 ![All Code working state](images/working-state.svg)
 
@@ -86,6 +86,10 @@ The picker reads the active agent's catalog. You can also enter an exact native 
 ```
 
 All Code saves one model selection per agent.
+
+Use `/models` to browse models from all installed agents. Select with the arrow keys and Enter; All Code switches to the model's agent automatically. The picker scrolls through the full list, and typing filters it—you never need to enter the full model ID.
+
+Use `/effort` to choose one of the selected model's supported reasoning levels. Use `/mode` to set that agent's permission mode. If an action requires your decision, All Code pauses and shows an approve/deny prompt; Deny is the default. The permission mode and effort are shown by `/status` and saved per agent.
 
 ## Session files
 

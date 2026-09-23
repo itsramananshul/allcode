@@ -10,6 +10,7 @@ export interface ModelEntry {
   description?: string
   isDefault?: boolean
   isFree?: boolean
+  efforts?: string[]
 }
 
 export interface ModelCatalog {
@@ -51,6 +52,7 @@ interface CodexModel {
   description?: unknown
   isDefault?: unknown
   hidden?: unknown
+  supportedReasoningEfforts?: unknown
 }
 
 export function parseCodexModels(value: unknown): ModelEntry[] {
@@ -67,6 +69,11 @@ export function parseCodexModels(value: unknown): ModelEntry[] {
       label: typeof model.displayName === "string" ? model.displayName : id,
       description: typeof model.description === "string" ? model.description : undefined,
       isDefault: model.isDefault === true,
+      efforts: Array.isArray(model.supportedReasoningEfforts)
+        ? model.supportedReasoningEfforts.flatMap((option) => {
+          const effort = (option as { reasoningEffort?: unknown }).reasoningEffort
+          return typeof effort === "string" ? [effort] : []
+        }) : undefined,
     }]
   })
 }
@@ -151,4 +158,32 @@ export async function discoverModels(agent: AgentName): Promise<ModelCatalog> {
 
 export async function discoverAllModels(): Promise<ModelCatalog[]> {
   return await Promise.all((["claude", "opencode", "codex"] as const).map(discoverModels))
+}
+
+export async function discoverEfforts(agent: AgentName, model: string | undefined): Promise<string[]> {
+  if (agent === "claude") return ["default", "low", "medium", "high", "xhigh", "max"]
+  if (agent === "codex") {
+    const catalog = await discoverModels("codex")
+    if (catalog.error) throw new Error(catalog.error)
+    const selected = catalog.models.find((entry) => entry.id === model)
+      ?? catalog.models.find((entry) => entry.isDefault)
+    return ["default", ...(selected?.efforts ?? [])]
+  }
+  if (!model || model === "default") return ["default"]
+  const provider = model.split("/")[0]
+  const output = await execText(resolveExecutable("opencode"), ["models", provider!, "--verbose"])
+  const lines = output.split(/\r?\n/)
+  const start = lines.findIndex((line) => line.trim() === model)
+  if (start < 0) return ["default"]
+  const json: string[] = []
+  for (let index = start + 1; index < lines.length; index += 1) {
+    json.push(lines[index]!)
+    if (lines[index] === "}") break
+  }
+  try {
+    const metadata = JSON.parse(json.join("\n")) as { variants?: Record<string, unknown> }
+    return ["default", ...Object.keys(metadata.variants ?? {})]
+  } catch {
+    return ["default"]
+  }
 }

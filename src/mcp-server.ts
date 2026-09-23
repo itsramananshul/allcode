@@ -84,5 +84,33 @@ export async function startMcpServer(): Promise<void> {
     inputSchema: { taskId: z.string().uuid() },
   }, async ({ taskId }) => response({ taskId, cancelled: manager.cancel(taskId) }))
 
+  const approvalPort = Number(process.env.ALL_CODE_APPROVAL_PORT)
+  const approvalToken = process.env.ALL_CODE_APPROVAL_TOKEN
+  if (Number.isInteger(approvalPort) && approvalPort > 0 && approvalToken) {
+    server.registerTool("approval_prompt", {
+      description: "Ask the All Code user to approve or deny a Claude Code tool call. Never approve automatically.",
+      inputSchema: {
+        tool_name: z.string(),
+        input: z.object({}).passthrough(),
+      },
+    }, async ({ tool_name, input }) => {
+      let approved = false
+      try {
+        const result = await fetch(`http://127.0.0.1:${approvalPort}/approval`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${approvalToken}` },
+          body: JSON.stringify({ toolName: tool_name, input }),
+          signal: AbortSignal.timeout(30 * 60 * 1000),
+        })
+        if (result.ok) approved = (await result.json() as { approved?: boolean }).approved === true
+      } catch { /* fail closed if the user-facing broker is unavailable */ }
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(approved
+          ? { behavior: "allow", updatedInput: input }
+          : { behavior: "deny", message: "Denied by the All Code user or the approval prompt was unavailable" }) }],
+      }
+    })
+  }
+
   await server.connect(new StdioServerTransport())
 }
