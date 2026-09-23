@@ -1,8 +1,8 @@
-import { createInterface, type Interface } from "node:readline/promises"
 import { stdin as input, stdout as output } from "node:process"
 import { discoverAllModels, discoverModels, type ModelEntry } from "./models.js"
 import { runAgent } from "./runner.js"
 import { SharedSession } from "./session.js"
+import { pickItem, readCommandLine, type PickerItem } from "./terminal-ui.js"
 import { agentNames, type AgentName } from "./types.js"
 
 const white = "\x1b[97m"
@@ -11,11 +11,29 @@ const bold = "\x1b[1m"
 const reset = "\x1b[0m"
 
 const mascot = [
-  "        ╭───────╮",
-  "    ╭───┤ < ■ > ├───╮",
-  "    ╰─○─┴───┬───┴─○─╯",
-  "        ╭───┴───╮",
-  "        ╰──┬─┬──╯",
+  "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣤",
+  "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠋",
+  "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣤⣿⣿⣦⣤⣀",
+  "⠀⠀⠀⠀⠀⠀⠀⠀⢠⣾⣿⠿⠿⠿⠿⠿⠿⢿⣿⣦",
+  "⠀⠀⠀⠀⠀⠀⣀⣦⣿⠁⠀⣠⡀⠀⠀⠀⣤⡀⠀⢻⣶⣄",
+  "⠀⠀⠀⠀⠀⠀⣿⣿⣿⠐⢿⣏⠀⣿⣿⠀⣨⣿⠆⢸⣏⣿⠆",
+  "⠀⠀⢀⣤⣄⡀⠈⠛⢿⣄⡀⠙⠁⠀⠀⠀⠙⠁⣀⣾⠛⠋⠀⣀⣤⡄",
+  "⠀⠀⠈⠻⣿⣿⣆⡀⠀⠙⡛⢛⣛⠻⠟⣛⣛⠛⠋⠁⠀⣀⣾⣿⡿⠁",
+  "⠀⠀⠀⠀⠈⠛⢿⣿⣿⢸⣯⣿⡿⠿⠿⠿⣿⣾⢿⣻⣿⡿⠟⠋",
+  "⠀⠀⠀⠀⢀⣠⣤⣤⣾⣿⢿⣿⣯⣭⣭⣵⣿⣿⢾⡿⣢⣤⣤⣀",
+  "⠀⠀⠀⠀⠙⠻⠿⠿⠋⠁⠀⢻⣿⣿⣿⣿⣿⠁⠀⠉⠻⠿⠿⠛",
+  "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⣿⣿⣿⠃",
+  "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣬⣯⣶",
+  "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢹⡿⠉",
+]
+
+const workingWords = [
+  "Fucking", "Bombing", "Killing", "Destroying", "Crushing", "Smashing", "Blasting", "Slaying", "Wrecking", "Demolishing",
+]
+
+const faceFrames = [
+  ["╭───────╮", "│ < ■ > │", "╰───────╯"],
+  ["╭───────╮", "│ ─ ■ ─ │", "╰───────╯"],
 ]
 
 function agentLabel(agent: AgentName): string {
@@ -40,14 +58,13 @@ function showHelp(): void {
   output.write(`${gray}/exit${reset}           Exit All Code\n\n`)
 }
 
-async function chooseAgent(rl: Interface, current: AgentName): Promise<AgentName> {
-  output.write(`\n${bold}${white}Choose an agent${reset}\n  1  Claude Code\n  2  OpenCode\n  3  Codex\n`)
-  const answer = (await rl.question(`${gray}Agent [${current}]: ${reset}`)).trim().toLowerCase()
-  if (answer === "1" || answer === "claude") return "claude"
-  if (answer === "2" || answer === "opencode") return "opencode"
-  if (answer === "3" || answer === "codex") return "codex"
-  output.write(`${gray}Kept ${current}.${reset}\n`)
-  return current
+async function chooseAgent(current: AgentName): Promise<AgentName> {
+  const items: PickerItem<AgentName>[] = [
+    { value: "claude", label: "Claude Code", description: "Anthropic CLI" },
+    { value: "opencode", label: "OpenCode", description: "Open provider catalog" },
+    { value: "codex", label: "Codex", description: "OpenAI CLI" },
+  ]
+  return await pickItem("Choose an agent", items, { current }) ?? current
 }
 
 function printModels(models: ModelEntry[], limit = 40): void {
@@ -58,20 +75,41 @@ function printModels(models: ModelEntry[], limit = 40): void {
   if (models.length > limit) output.write(`${gray}  … ${models.length - limit} more; enter an exact model ID to select it.${reset}\n`)
 }
 
-async function chooseModel(rl: Interface, agent: AgentName, current: string | undefined): Promise<string | undefined> {
+async function chooseModel(agent: AgentName, current: string | undefined): Promise<string | undefined> {
   output.write(`\n${gray}Discovering ${agentLabel(agent)} models…${reset}\n`)
   const catalog = await discoverModels(agent)
   if (catalog.error) output.write(`${gray}Catalog unavailable: ${catalog.error}${reset}\n`)
-  if (catalog.models.length > 0) printModels(catalog.models)
-  const answer = (await rl.question(`${gray}Model number or exact ID (blank keeps current): ${reset}`)).trim()
-  if (!answer) return current
-  if (/^\d+$/.test(answer)) {
-    const selected = catalog.models[Number(answer) - 1]
-    if (selected) return selected.id
-    output.write(`${gray}No model exists at position ${answer}; kept ${current ?? "default"}.${reset}\n`)
-    return current
+  const items: PickerItem<string>[] = catalog.models.map((entry) => {
+    const flags = [entry.isDefault ? "default" : "", entry.isFree ? "free" : ""].filter(Boolean)
+    const details = [entry.label !== entry.id ? entry.label : "", ...flags].filter(Boolean).join(" · ")
+    return { value: entry.id, label: entry.id, description: details }
+  })
+  return await pickItem(`Choose a ${agentLabel(agent)} model`, items, {
+    current,
+    allowCustom: true,
+    limit: 12,
+  }) ?? current
+}
+
+function startWorkingAnimation(agent: AgentName): { stop: () => number } {
+  const started = Date.now()
+  let tick = 0
+  const draw = (): void => {
+    if (tick > 0) output.write("\x1b[2A\r\x1b[0J")
+    const face = faceFrames[Math.floor(tick / 2) % faceFrames.length]!
+    const word = workingWords[Math.floor(tick / 6) % workingWords.length] ?? "Fucking"
+    output.write(`${gray}${face[0]}${reset}\n${gray}${face[1]}${reset}  ${white}${word}…${reset} ${gray}${Math.round((Date.now() - started) / 1000)}s · ${agentLabel(agent)}${reset}\n${gray}${face[2]}${reset}`)
+    tick += 1
   }
-  return answer
+  draw()
+  const timer = setInterval(draw, 450)
+  return {
+    stop: () => {
+      clearInterval(timer)
+      output.write("\x1b[2A\r\x1b[0J")
+      return Date.now() - started
+    },
+  }
 }
 
 async function printAllModels(): Promise<void> {
@@ -90,13 +128,14 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
   if (forceInitialAgent) shared.activeAgent = initialAgent
   let agent = shared.activeAgent
   let model = shared.model(agent)
-  const rl = createInterface({ input, output, terminal: true })
+  const history: string[] = []
   header(agent, model, cwd)
 
   try {
     while (true) {
-      const line = (await rl.question(`${white}› ${reset}`)).trim()
+      const line = (await readCommandLine(history)).trim()
       if (!line) continue
+      history.push(line)
       const [command, ...parts] = line.split(/\s+/)
 
       if (command === "/exit" || command === "/quit") break
@@ -113,25 +152,19 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         const requested = parts[0]?.toLowerCase()
         agent = requested && agentNames.includes(requested as AgentName)
           ? requested as AgentName
-          : await chooseAgent(rl, agent)
+          : await chooseAgent(agent)
         shared.activeAgent = agent
         model = shared.model(agent)
         output.write(`${gray}Active agent:${reset} ${white}${agentLabel(agent)}${reset}\n`)
         continue
       }
       if (command === "/model") {
-        model = parts.length > 0 ? parts.join(" ") : await chooseModel(rl, agent, model)
+        model = parts.length > 0 ? parts.join(" ") : await chooseModel(agent, model)
         shared.setModel(agent, model)
         output.write(`${gray}Active model:${reset} ${white}${model ?? "default"}${reset}\n`)
         continue
       }
-      const started = Date.now()
-      const frames = ["·", "··", "···"]
-      let frame = 0
-      output.write(`${gray}${agentLabel(agent)} is working${frames[0]}${reset}`)
-      const timer = setInterval(() => {
-        output.write(`\r\x1b[2K${gray}${agentLabel(agent)} is working${frames[frame++ % frames.length]} ${Math.round((Date.now() - started) / 1000)}s${reset}`)
-      }, 500)
+      const animation = startWorkingAnimation(agent)
       try {
         const result = await runAgent({
           agent,
@@ -142,18 +175,17 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         })
         if (result.sessionId) shared.setNativeSession(agent, result.sessionId)
         shared.recordTurn(agent, line, result.finalText.trim())
-        output.write(`\r\x1b[2K${gray}${agentLabel(agent)} · ${((Date.now() - started) / 1000).toFixed(1)}s${reset}\n\n`)
+        const elapsed = animation.stop()
+        output.write(`${gray}${agentLabel(agent)} · ${(elapsed / 1000).toFixed(1)}s${reset}\n\n`)
         output.write(`${result.finalText.trim()}\n\n`)
       } catch (error) {
+        animation.stop()
         const message = error instanceof Error ? error.message : String(error)
         shared.recordFailure(agent, line, message)
-        output.write(`\r\x1b[2K${white}Error:${reset} ${message}\n\n`)
-      } finally {
-        clearInterval(timer)
+        output.write(`${white}Error:${reset} ${message}\n\n`)
       }
     }
   } finally {
-    rl.close()
     output.write(`${gray}All Code closed.${reset}\n`)
   }
 }

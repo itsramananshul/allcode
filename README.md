@@ -46,6 +46,8 @@ Type a request as usual. All Code sends it to the active agent.
 › find the cause of the failing authentication test
 ```
 
+Type `/` to open the command palette. The list filters as you type; use the arrow keys to browse, Enter to select, Tab to complete, and Escape to close it.
+
 Change agents without leaving the session:
 
 ```text
@@ -62,6 +64,8 @@ Choose a model from the active agent:
 › /model
 › /model opencode/big-pickle
 ```
+
+The agent and model pickers are searchable and keyboard-driven.
 
 List models from OpenCode and Codex alongside All Code's Claude aliases:
 

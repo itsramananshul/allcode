@@ -54,6 +54,8 @@ Enter a request at the prompt:
 › trace the request path for POST /api/login and explain the failure
 ```
 
+Type `/` at an empty prompt to browse every All Code command without leaving the workspace.
+
 Switch agents at any point:
 
 ```text

@@ -10,6 +10,8 @@ allcode [--agent claude|opencode|codex] [--cwd PATH]
 
 ## Slash commands
 
+Typing `/` opens the command palette immediately. Continue typing to filter it, move with the up and down arrow keys, press Enter to run the highlighted command, or press Tab to complete it in the input. Escape dismisses the palette.
+
 | Command | Description |
 | --- | --- |
 | `/agent` | Open the agent picker |
@@ -26,6 +28,8 @@ allcode [--agent claude|opencode|codex] [--cwd PATH]
 | `/exit` | Exit; `/quit` is an alias |
 
 Input that does not match an All Code command is sent to the active agent. This includes slash-prefixed input, so commands supported by an agent's non-interactive mode can still be used.
+
+`/agent` and `/model` open searchable pickers. Their lists support arrow-key navigation, Enter to select, and Escape to keep the current value.
 
 ## Inspect agents
 
