@@ -13,6 +13,9 @@ SOURCE = ROOT / "assets" / "allcode-mascot.png"
 PREVIEWS = [
     ROOT / "docs" / "images" / "command-palette.svg",
     ROOT / "docs" / "images" / "working-state.svg",
+    ROOT / "docs" / "images" / "agent-picker.svg",
+    ROOT / "docs" / "images" / "model-picker.svg",
+    ROOT / "docs" / "images" / "approval-prompt.svg",
 ]
 
 image = Image.open(SOURCE).convert("RGBA")

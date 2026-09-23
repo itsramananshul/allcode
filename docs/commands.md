@@ -47,6 +47,10 @@ Input that does not match an All Code command is sent to the active agent as a p
 
 When a provider asks for permission, the proposed command, tool input, or file change appears in a scrollable All Code prompt. Deny is selected by default. Use the arrow keys or Page Up/Down to inspect, Tab to switch between Deny and Allow once, then Enter to decide. `A` allows once, `D` or Escape denies. Bypass/auto-approve modes require a separate confirmation when selected. Provider and organization policies can still deny an action.
 
+![All Code approval prompt preview](images/approval-prompt.svg)
+
+Approval prompts are part of the interactive `allcode` workspace. One-shot `allcode run` calls and background delegated tasks do not display this prompt; see [Security](security.md#agent-permissions).
+
 ## Inspect agents
 
 ```bash

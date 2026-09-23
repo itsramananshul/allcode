@@ -12,6 +12,10 @@ All Code has three routes:
 
 `/agent` changes the route for the next request. The terminal layout and All Code commands remain the same.
 
+Use `/agent` to choose from a searchable picker, or `/agent claude`, `/agent opencode`, or `/agent codex` to switch directly.
+
+![All Code agent picker preview](images/agent-picker.svg)
+
 ## Model discovery
 
 All Code uses live discovery for OpenCode and Codex, and supplies a short set of Claude Code aliases:
@@ -36,6 +40,10 @@ Open the picker:
 › /model
 ```
 
+![All Code model picker preview](images/model-picker.svg)
+
+The highlighted model is selected with Enter or Tab. Type to filter the list, or use `/models` to browse all installed agents in one picker. Choosing a model from another agent also switches the active route.
+
 Select an exact ID:
 
 ```text
@@ -43,6 +51,8 @@ Select an exact ID:
 ```
 
 Each agent keeps its own selection. Moving from OpenCode to Codex and back restores the OpenCode model.
+
+`/effort` shows the reasoning levels available for the active model. The selected level is stored per agent; changing that agent's model resets its effort to the provider default.
 
 ## Context handoff
 

@@ -3,7 +3,7 @@
 ## Start here
 
 - [Getting started](getting-started.md) — install All Code and open the first workspace
-- [Terminal previews](getting-started.md#start-a-task) — see the command palette and working state
+- [Terminal previews](getting-started.md#start-a-task) — see the command palette, agent and model pickers, approval prompt, and working state
 - [Command reference](commands.md) — terminal commands, slash commands, and environment variables
 - [Agents and models](agents-and-models.md) — agent switching, model discovery, and context handoff
 

@@ -21,7 +21,7 @@ All Code is a terminal interface over three CLI adapters.
 
 ## Prompt loop
 
-`src/allcode.ts` owns the terminal. It handles All Code slash commands locally and sends other input through `runAgent`.
+`src/allcode.ts` owns the terminal. It handles All Code slash commands locally, stores model/effort/permission selections per agent, and sends other input through `runAgent`. `src/workspace-screen.ts` draws the fixed input, searchable pickers, and approval review pane.
 
 ## Adapters
 
@@ -33,12 +33,15 @@ All Code is a terminal interface over three CLI adapters.
 
 `src/parsers.ts` extracts final text and native session IDs from each event stream.
 
+Interactive approvals use a separate path when the chosen permission mode needs one: Claude Code connects to the local approval broker, OpenCode uses a local server session, and Codex uses its app-server protocol. The resulting requests go through the same All Code approval pane. Headless `allcode run` and delegated tasks keep their non-interactive adapter path.
+
 ## Sessions
 
 `src/session.ts` stores workspace state in `.allcode/session.json`:
 
 - active agent
 - selected model per agent
+- selected effort and permission mode per agent
 - native session ID per agent
 - shared messages
 - delivery cursor per agent

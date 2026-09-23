@@ -60,6 +60,10 @@ Change agents without leaving the session:
 › apply the review and run the tests
 ```
 
+`/agent` opens the same searchable, arrow-key picker as `/model`; a name after the command switches directly. Your submitted prompts are labeled `You`, and replies carry the active agent's name.
+
+![All Code agent picker preview](docs/images/agent-picker.svg)
+
 Choose a model from the active agent:
 
 ```text
@@ -69,7 +73,11 @@ Choose a model from the active agent:
 
 The agent and model pickers are searchable and keyboard-driven. `/model` browses the active agent's models; `/models` browses all discovered models and switches agents when you select one. Use the arrow keys and Enter—you do not need to type a model ID.
 
-`/effort` lists the reasoning levels advertised by the selected model. `/mode` opens that agent's permission modes. Claude Code, OpenCode Ask mode, and Codex's interactive modes pause for approval when the provider requests it; All Code shows the proposed action and lets you allow it once or deny it. The default choice is Deny. Use the arrow keys or Page Up/Down to inspect a long request, Tab to switch the choice, and Enter to confirm. `/status` shows the current effort and mode.
+![All Code model picker preview](docs/images/model-picker.svg)
+
+`/effort` lists the reasoning levels available for the selected model. `/mode` opens that agent's permission modes. The choices differ by agent; [the command reference](docs/commands.md#slash-commands) lists them. In modes that ask, All Code displays the proposed action and lets you allow it once or deny it. The default choice is Deny. Use the arrow keys or Page Up/Down to inspect a long request, Tab to switch the choice, and Enter to confirm. `/status` shows the current effort and mode.
+
+![All Code approval prompt preview](docs/images/approval-prompt.svg)
 
 While an agent runs, a rotating status word shows the elapsed time. In Windows Terminal, the header displays the full All Code mascot image.
 

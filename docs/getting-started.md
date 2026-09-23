@@ -67,7 +67,11 @@ Switch agents at any point:
 › review the proposed fix before it is applied
 ```
 
-The next agent receives the shared conversation and continues in the same working directory.
+`/agent` opens an arrow-key picker like `/model`. You can type to filter it or use `/agent codex` to switch directly. The next agent receives the shared conversation and continues in the same working directory.
+
+![All Code agent picker preview](images/agent-picker.svg)
+
+In the transcript, your submitted input begins with `You ›`; agent replies are labeled with the agent's name and elapsed time.
 
 While a task runs, a changing status word shows elapsed time and the active agent. The response appears beneath it when the task completes. Windows Terminal displays the full mascot image in the header.
 
@@ -89,7 +93,13 @@ All Code saves one model selection per agent.
 
 Use `/models` to browse models from all installed agents. Select with the arrow keys and Enter; All Code switches to the model's agent automatically. The picker scrolls through the full list, and typing filters it—you never need to enter the full model ID.
 
-Use `/effort` to choose one of the selected model's supported reasoning levels. Use `/mode` to set that agent's permission mode. If an action requires your decision, All Code pauses and shows an approve/deny prompt; Deny is the default. The permission mode and effort are shown by `/status` and saved per agent.
+![All Code model picker preview](images/model-picker.svg)
+
+Use `/effort` to choose one of the selected model's reasoning levels. Use `/mode` to set that agent's permission mode. If the chosen mode asks and an action requires your decision, All Code pauses and shows an approve/deny prompt. Deny is selected initially; press Tab to select Allow once, then Enter, or press `A` to allow immediately. Press `D` or Escape to deny. The permission mode and effort are shown by `/status` and saved per agent.
+
+![All Code approval prompt preview](images/approval-prompt.svg)
+
+See the [permission modes](commands.md#slash-commands) for each agent and the [security guide](security.md) before using an auto-approve or bypass mode.
 
 ## Session files
 

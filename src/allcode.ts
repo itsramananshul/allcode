@@ -1,4 +1,5 @@
 import { stdin as input, stdout as output } from "node:process"
+import { emitKeypressEvents } from "node:readline"
 import { discoverAllModels, discoverEfforts, discoverModels, type ModelEntry } from "./models.js"
 import { runAgent } from "./runner.js"
 import { SharedSession } from "./session.js"
@@ -46,7 +47,7 @@ async function chooseModel(agent: AgentName, current: string | undefined, screen
   screen.setWorking("")
   if (catalog.error) screen.append(`Catalog unavailable: ${catalog.error}`)
   const items = catalog.models.map(modelChoice)
-  return await pickItem(`Choose a ${agentLabel(agent)} model`, items, {
+  return await pickItem(`Choose ${agent === "opencode" ? "an" : "a"} ${agentLabel(agent)} model`, items, {
     current,
     allowCustom: true,
     limit: 12,
@@ -174,10 +175,15 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
   let permissionMode = shared.permissionMode(agent) ?? defaultPermissionMode(agent)
   const history: string[] = []
   const screen = new WorkspaceScreen(output, cwd, agentLabel(agent), model ?? "default model")
-  screen.start()
-  screen.setExecutionSettings(effort, permissionMode)
+  const inputWasRaw = Boolean(input.isRaw)
+  const inputWasFlowing = input.readableFlowing === true
+  emitKeypressEvents(input)
+  input.setRawMode(true)
+  input.resume()
 
   try {
+    screen.start()
+    screen.setExecutionSettings(effort, permissionMode)
     while (true) {
       const line = (await readCommandLine(history, input, output, screen)).trim()
       if (!line) continue
@@ -271,7 +277,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         if (result.sessionId) shared.setNativeSession(agent, result.sessionId)
         shared.recordTurn(agent, line, result.finalText.trim())
         const elapsed = animation.stop()
-        screen.append(`${agentLabel(agent)} · ${(elapsed / 1000).toFixed(1)}s\n${result.finalText.trim()}\n`)
+        screen.append(`${agentLabel(agent)} replied · ${(elapsed / 1000).toFixed(1)}s\n${result.finalText.trim()}\n`)
       } catch (error) {
         animation.stop()
         const message = error instanceof Error ? error.message : String(error)
@@ -281,6 +287,8 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
     }
   } finally {
     screen.stop()
+    input.setRawMode(inputWasRaw)
+    if (!inputWasFlowing) input.pause()
     output.write(`${gray}All Code closed.${reset}\n`)
   }
 }

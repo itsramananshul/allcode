@@ -53,7 +53,7 @@ describe("fullscreen command palette", () => {
     input.emit("keypress", undefined, { name: "return" })
     expect(await result).toBe("/model")
     expect(writes.join("")).toContain("› /model")
-    expect(writes.at(-1)).toContain("› /model")
+    expect(writes.at(-1)).toContain("You › /model")
     screen.stop()
   })
 

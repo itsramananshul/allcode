@@ -9,7 +9,7 @@
     <text x="166" y="101" fill="#f1f1f2">OpenCode <tspan fill="#929498">· opencode/big-pickle</tspan></text>
     <text x="166" y="132" fill="#a7a9ad">C:\projects\demo</text>
     <text x="36" y="185" fill="#777a7e">One workspace. Every coding agent. Type / for commands.</text>
-    <text x="36" y="285" fill="#f1f1f2">› find the cause of the failing authentication test</text>
+    <text x="36" y="285" fill="#f1f1f2">You › find the cause of the failing authentication test</text>
     <text x="36" y="327" fill="#c8c9cb">◈ Fucking… 3s · OpenCode</text>
     <line x1="22" y1="419" x2="1098" y2="419" stroke="#606267"/>
     <text x="28" y="450" fill="#f1f1f2">›</text>

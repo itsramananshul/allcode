@@ -56,6 +56,10 @@ Choose another model or agent, or wait for the provider quota to reset:
 
 The provider currently has no serving endpoint for that model. Select another entry from `/model`. Delegated tasks should use a model available to the target agent.
 
+## Claude Code takes longer than its native terminal
+
+All Code starts a new Claude Code print-mode process for each request, then resumes the saved native session. That startup is included in the time shown beneath the reply. Native Claude Code keeps its interactive process open, so a short reply there can feel faster. Installed hooks, plugins, and MCP servers may add to each launch. `allcode native --agent claude` opens Claude's own terminal interface if you need that behavior; it does not use All Code's shared workspace interface.
+
 ## Context did not follow an agent switch
 
 Run `/status` and open the displayed `.allcode/session.json`. Shared messages apply to turns made through All Code; conversations created directly in another CLI are not imported.
