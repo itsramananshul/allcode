@@ -51,8 +51,8 @@ function transcriptLines(blocks: TranscriptBlock[], width: number): string[] {
   for (const block of blocks) {
     if (lines.length && lines.at(-1) !== "") lines.push("")
     if (block.kind === "user") {
-      const message = wrap(`You › ${block.text}`, width - 2)
-      for (const line of message) lines.push(`${surface}${white} ${line.padEnd(width - 1)}${reset}`)
+      const message = wrap(block.text, width - 2)
+      for (const line of message) lines.push(`${surface}${white}  ${line.padEnd(width - 2)}${reset}`)
     } else if (block.kind === "agent") {
       lines.push(`${gray}  ${block.agent} · ${(block.elapsedMs / 1000).toFixed(1)}s${reset}`)
       for (const line of wrap(block.text, width - 2)) lines.push(`${white}  ${line}${reset}`)
@@ -198,7 +198,10 @@ export class WorkspaceScreen {
     const bodyStart = 8
     const bodyHeight = Math.max(0, bodyEnd - bodyStart)
     const transcript = transcriptLines(this.transcript, width)
-    if (this.working) transcript.push(...wrap(`◈ ${this.working}`, width))
+    if (this.working) {
+      if (transcript.length && transcript.at(-1) !== "") transcript.push("")
+      transcript.push(...wrap(`◈ ${this.working}`, width - 2).map((line) => `${gray}  ${line}${reset}`))
+    }
     const approvalLines = this.approval
       ? [`${white}${this.approval.title}${reset}`, "", ...this.approval.details.split("\n").flatMap((line) => wrap(line, width))]
       : []
