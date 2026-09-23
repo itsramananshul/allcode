@@ -9,6 +9,7 @@ export interface ScreenChoice {
 
 const gray = "\x1b[90m"
 const white = "\x1b[97m"
+const surface = "\x1b[48;5;238m"
 const inverse = "\x1b[7m"
 const reset = "\x1b[0m"
 const ansi = /\x1b\[[0-9;]*m/g
@@ -41,8 +42,29 @@ function crop(value: string, width: number): string {
   return value.length > width ? `${value.slice(0, Math.max(0, width - 1))}…` : value
 }
 
+type TranscriptBlock =
+  | { kind: "user" | "system"; text: string }
+  | { kind: "agent"; text: string; agent: string; elapsedMs: number }
+
+function transcriptLines(blocks: TranscriptBlock[], width: number): string[] {
+  const lines: string[] = []
+  for (const block of blocks) {
+    if (lines.length && lines.at(-1) !== "") lines.push("")
+    if (block.kind === "user") {
+      const message = wrap(`You › ${block.text}`, width - 2)
+      for (const line of message) lines.push(`${surface}${white} ${line.padEnd(width - 1)}${reset}`)
+    } else if (block.kind === "agent") {
+      lines.push(`${gray}  ${block.agent} · ${(block.elapsedMs / 1000).toFixed(1)}s${reset}`)
+      for (const line of wrap(block.text, width - 2)) lines.push(`${white}  ${line}${reset}`)
+    } else {
+      for (const line of wrap(block.text, width - 2)) lines.push(`${gray}  ${line}${reset}`)
+    }
+  }
+  return lines
+}
+
 export class WorkspaceScreen {
-  private readonly transcript: string[] = []
+  private readonly transcript: TranscriptBlock[] = []
   private input = ""
   private cursor = 0
   private choices: ScreenChoice[] = []
@@ -92,7 +114,17 @@ export class WorkspaceScreen {
   }
 
   append(value: string): void {
-    this.transcript.push(...value.replace(/\n$/, "").split("\n"))
+    this.transcript.push({ kind: "system", text: value.trimEnd() })
+    this.render()
+  }
+
+  appendUser(value: string): void {
+    this.transcript.push({ kind: "user", text: value })
+    this.render()
+  }
+
+  appendAgent(agent: string, value: string, elapsedMs: number): void {
+    this.transcript.push({ kind: "agent", agent, text: value, elapsedMs })
     this.render()
   }
 
@@ -165,7 +197,7 @@ export class WorkspaceScreen {
     const bodyEnd = menuStart - (this.pickerTitle ? 3 : 1)
     const bodyStart = 8
     const bodyHeight = Math.max(0, bodyEnd - bodyStart)
-    const transcript = this.transcript.flatMap((line) => wrap(line, width))
+    const transcript = transcriptLines(this.transcript, width)
     if (this.working) transcript.push(...wrap(`◈ ${this.working}`, width))
     const approvalLines = this.approval
       ? [`${white}${this.approval.title}${reset}`, "", ...this.approval.details.split("\n").flatMap((line) => wrap(line, width))]

@@ -125,7 +125,7 @@ export async function readCommandLine(
       stopRawInput(input, wasRaw, wasFlowing)
       if (screen) {
         screen.setInput("", 0)
-        if (result) screen.append(`You › ${result}\n`)
+        if (result) screen.appendUser(result)
       } else {
         output.write("\x1b[u\x1b[0J")
         output.write(`${white}${prompt}${reset}${result}\n`)

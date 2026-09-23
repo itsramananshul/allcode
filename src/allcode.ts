@@ -300,7 +300,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         if (result.sessionId) shared.setNativeSession(agent, result.sessionId)
         shared.recordTurn(agent, line, result.finalText.trim())
         const elapsed = animation.stop()
-        screen.append(`${agentLabel(agent)} replied · ${(elapsed / 1000).toFixed(1)}s\n${result.finalText.trim()}\n`)
+        screen.appendAgent(agentLabel(agent), result.finalText.trim(), elapsed)
       } catch (error) {
         animation.stop()
         const message = error instanceof Error ? error.message : String(error)
