@@ -14,9 +14,9 @@
 
 AllCode lets you start a task with one coding agent and continue it with another. The active agent does the work through its own installed CLI; AllCode carries the conversation across the switch. Claude Code, OpenCode, Codex, and Hermes are built in. You can add other installed agents, including one-shot CLIs, with an adapter.
 
-[![Watch AllCode in a terminal session](docs/images/demo-poster.png)](docs/demo/allcode-terminal-demo.mp4)
+A real AllCode terminal session, with waiting time shortened: a task moves from Codex to Claude Code and finishes with passing tests.
 
-[Watch the terminal session](docs/demo/allcode-terminal-demo.mp4) — a real AllCode run, with waiting time shortened. It shows a task moving from Codex to Claude Code and the tests passing after the fix.
+https://github.com/user-attachments/assets/c0bdaa0a-22e1-491a-a2c3-53c1cb36293c
 
 ## Install
 
