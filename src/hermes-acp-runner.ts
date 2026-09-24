@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url"
 import { getAdapter } from "./adapters.js"
 import { type ApprovalHandler } from "./approval-broker.js"
 import { resolveExecutable } from "./executable.js"
-import type { AgentResult, Invocation, RunRequest } from "./types.js"
+import { activityDetail } from "./activity.js"
+import type { ActivityHandler, AgentResult, Invocation, RunRequest } from "./types.js"
 
 type InvocationFactory = (request: RunRequest) => Invocation
 
@@ -54,6 +55,7 @@ export class HermesAcpRunner {
   private chunks: string[] = []
   private events = 0
   private approvalHandler?: ApprovalHandler
+  private activityHandler?: ActivityHandler
 
   constructor(private readonly makeInvocation: InvocationFactory = defaultInvocation, private readonly agentName = "hermes") {}
 
@@ -82,7 +84,7 @@ export class HermesAcpRunner {
     return this.models ?? { availableModels: [] }
   }
 
-  async run(request: RunRequest, onApproval?: ApprovalHandler, signal?: AbortSignal): Promise<AgentResult> {
+  async run(request: RunRequest, onApproval?: ApprovalHandler, signal?: AbortSignal, onActivity?: ActivityHandler): Promise<AgentResult> {
     const started = Date.now()
     const abort = (): void => {
       if (this.collecting) void this.rpc("session/cancel", { sessionId: this.sessionId }, 5_000).catch(() => {})
@@ -94,6 +96,7 @@ export class HermesAcpRunner {
       await this.prepare(request)
       signal?.throwIfAborted()
       this.approvalHandler = onApproval
+      this.activityHandler = onActivity
       this.collecting = true
       this.chunks = []
       this.events = 0
@@ -116,6 +119,7 @@ export class HermesAcpRunner {
       signal?.removeEventListener("abort", abort)
       this.collecting = false
       this.approvalHandler = undefined
+      this.activityHandler = undefined
     }
   }
 
@@ -207,6 +211,16 @@ export class HermesAcpRunner {
           const content = record(update.content)
           if (update.sessionUpdate === "agent_message_chunk" && content.type === "text" && typeof content.text === "string") {
             this.chunks.push(content.text)
+            this.activityHandler?.({ kind: "text", text: content.text })
+          } else if (update.sessionUpdate === "agent_thought_chunk" && content.type === "text" && typeof content.text === "string") {
+            this.activityHandler?.({ kind: "reasoning", text: content.text })
+          } else if (update.sessionUpdate === "tool_call" || update.sessionUpdate === "tool_call_update") {
+            const title = String(update.title ?? update.toolCallId ?? "Tool")
+            const status = typeof update.status === "string" ? ` · ${update.status}` : ""
+            const detail = activityDetail(update.rawInput ?? update.rawOutput ?? "")
+            this.activityHandler?.({ kind: "tool", text: `${title}${status}${detail && detail !== '""' ? ` · ${detail}` : ""}` })
+          } else if (update.sessionUpdate === "plan") {
+            this.activityHandler?.({ kind: "status", text: `Plan · ${activityDetail(update.entries ?? update)}` })
           }
         }
         continue

@@ -33,6 +33,12 @@ readline.createInterface({ input: process.stdin }).on("line", (line) => {
   } else if (message.id === 900 + turn) {
     const decision = message.result.outcome.optionId
     send({ method: "session/update", params: { update: {
+      sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "Considering" },
+    } } })
+    send({ method: "session/update", params: { update: {
+      sessionUpdate: "tool_call", title: "Write file", status: "in_progress", rawInput: { path: "test.txt" },
+    } } })
+    send({ method: "session/update", params: { update: {
       sessionUpdate: "agent_message_chunk", content: { type: "text", text: turn + ":" + decision + ":" + model + ":" + mode },
     } } })
     send({ id: promptId, result: { stopReason: "end_turn" } })
@@ -43,6 +49,19 @@ readline.createInterface({ input: process.stdin }).on("line", (line) => {
 const request: RunRequest = { agent: "hermes", cwd: process.cwd(), prompt: "test", permissionMode: "default" }
 
 describe("Hermes ACP route", () => {
+  it("forwards exposed thought, tool, and reply updates", async () => {
+    const runner = new HermesAcpRunner(() => ({
+      command: process.execPath, args: ["-e", fixture], cwd: process.cwd(),
+    }))
+    const events: Array<{ kind: string; text: string }> = []
+    try {
+      await runner.run(request, async () => true, undefined, (event) => events.push(event))
+      expect(events).toContainEqual({ kind: "reasoning", text: "Considering" })
+      expect(events.some((event) => event.kind === "tool" && event.text.includes("Write file"))).toBe(true)
+      expect(events.some((event) => event.kind === "text" && event.text.includes("allow_once"))).toBe(true)
+    } finally { await runner.close() }
+  })
+
   it("does not start a turn when already interrupted", async () => {
     const runner = new HermesAcpRunner(() => ({
       command: process.execPath, args: ["-e", fixture], cwd: process.cwd(),

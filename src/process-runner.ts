@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process"
+import { StringDecoder } from "node:string_decoder"
 import type { Invocation, ProcessResult } from "./types.js"
 
 const MAX_CAPTURE_BYTES = 8 * 1024 * 1024
@@ -31,11 +32,13 @@ export async function runProcess(
   invocation: Invocation,
   timeoutMs: number,
   signal?: AbortSignal,
+  onStdout?: (chunk: string) => void,
 ): Promise<ProcessResult> {
   const started = Date.now()
   let stdout = ""
   let stderr = ""
   let timedOut = false
+  const decoder = new StringDecoder("utf8")
 
   return await new Promise<ProcessResult>((resolve, reject) => {
     const child = spawn(invocation.command, invocation.args, {
@@ -53,7 +56,12 @@ export async function runProcess(
       abort()
     }, timeoutMs)
 
-    child.stdout.on("data", (chunk: Buffer) => { stdout = appendBounded(stdout, chunk) })
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout = appendBounded(stdout, chunk)
+      const text = decoder.write(chunk)
+      if (text) onStdout?.(text)
+    })
+    child.stdout.on("end", () => { const text = decoder.end(); if (text) onStdout?.(text) })
     child.stderr.on("data", (chunk: Buffer) => { stderr = appendBounded(stderr, chunk) })
     child.on("error", (error) => {
       clearTimeout(timer)

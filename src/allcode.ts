@@ -222,6 +222,8 @@ async function addInteractively(kind: string | undefined, screen: WorkspaceScree
       const animation = startWorkingAnimation(currentAgent, screen)
       const controller = new AbortController()
       const interrupt = (_text: string | undefined, key: Key): void => {
+        if (key.name === "pageup") { screen.scrollTranscript(Math.max(1, (output.rows ?? 24) - 15)); return }
+        if (key.name === "pagedown") { screen.scrollTranscript(-Math.max(1, (output.rows ?? 24) - 15)); return }
         if ((key.ctrl && key.name === "c") || key.name === "escape") {
           if (!controller.signal.aborted) {
             controller.abort()
@@ -351,7 +353,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
   input.resume()
 
   try {
-    screen.start()
+    screen.start(input)
     screen.setExecutionSettings(effort, permissionMode)
     while (true) {
       const line = (await readCommandLine(history, input, output, screen)).trim()
@@ -440,6 +442,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
       }
       input.on("keypress", interrupt)
       let approvalQueue: Promise<void> = Promise.resolve()
+      const onActivity = (activity: import("./types.js").AgentActivity): void => screen.appendActivity(activity)
       try {
         const request = {
           agent,
@@ -461,17 +464,19 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
           return decision
         }
         const result = agent === "claude"
-          ? await claude.run({ ...request, agent: "claude" }, onApproval, controller.signal)
+          ? await claude.run({ ...request, agent: "claude" }, onApproval, controller.signal, onActivity)
           : agent === "hermes"
-            ? await hermes.run({ ...request, agent: "hermes" }, onApproval, controller.signal)
-          : await runAgent(request, controller.signal, onApproval)
+            ? await hermes.run({ ...request, agent: "hermes" }, onApproval, controller.signal, onActivity)
+          : await runAgent(request, controller.signal, onApproval, onActivity)
         if (controller.signal.aborted) throw new Error("Task interrupted")
         if (result.sessionId) shared.setNativeSession(agent, result.sessionId)
         shared.recordTurn(agent, line, result.finalText.trim())
         const elapsed = animation.stop()
+        screen.clearLiveActivity()
         screen.appendAgent(agentLabel(agent), result.finalText.trim(), elapsed)
       } catch (error) {
         animation.stop()
+        screen.clearLiveActivity()
         if (controller.signal.aborted) screen.append("Task interrupted.")
         else {
           const message = error instanceof Error ? error.message : String(error)

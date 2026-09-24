@@ -37,6 +37,9 @@ export interface AgentResult extends ProcessResult {
   eventCount: number
 }
 
+export type AgentActivity = { kind: "text" | "reasoning" | "tool" | "status"; text: string }
+export type ActivityHandler = (activity: AgentActivity) => void
+
 export type TaskState = "queued" | "running" | "completed" | "failed" | "cancelled"
 
 export interface TaskRecord {

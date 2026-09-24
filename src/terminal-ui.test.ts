@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { EventEmitter } from "node:events"
+import { PassThrough } from "node:stream"
+import { emitKeypressEvents } from "node:readline"
 import type { ReadStream, WriteStream } from "node:tty"
 import { commandItems, filterCommandItems, filterPickerItems, pickItem, promptApproval, readCommandLine } from "./terminal-ui.js"
 import { WorkspaceScreen } from "./workspace-screen.js"
@@ -32,6 +34,29 @@ describe("interactive picker", () => {
 })
 
 describe("fullscreen command palette", () => {
+  it("does not insert mouse-wheel escape fragments into the prompt", async () => {
+    const input = new PassThrough() as unknown as ReadStream
+    input.isTTY = true
+    input.isRaw = false
+    input.setRawMode = (value) => { input.isRaw = value; return input }
+    const writes: string[] = []
+    const output = new EventEmitter() as WriteStream
+    output.rows = 24
+    output.columns = 80
+    output.write = ((chunk: string) => { writes.push(chunk); return true }) as WriteStream["write"]
+    const screen = new WorkspaceScreen(output, "C:\\work", "Codex", "default")
+    emitKeypressEvents(input)
+    screen.start(input)
+    for (let index = 0; index < 20; index += 1) screen.appendUser(`message ${index}`)
+    const result = readCommandLine(["old prompt"], input, output, screen)
+    input.write(Buffer.from("\x1b[<64;12;10M"))
+    expect(writes.at(-1)).toContain("message 16")
+    expect(writes.at(-1)).not.toContain("old prompt")
+    input.write("hi\r")
+    expect(await result).toBe("hi")
+    screen.stop()
+  })
+
   it("moves the highlight, completes with Tab, and runs with Enter", async () => {
     const input = new EventEmitter() as ReadStream
     input.isRaw = false

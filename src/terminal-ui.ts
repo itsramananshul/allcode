@@ -1,7 +1,7 @@
 import { emitKeypressEvents, type Key } from "node:readline"
 import { stdin as defaultInput, stdout as defaultOutput } from "node:process"
 import type { ReadStream, WriteStream } from "node:tty"
-import type { WorkspaceScreen } from "./workspace-screen.js"
+import { isMouseKeypress, type WorkspaceScreen } from "./workspace-screen.js"
 
 const white = "\x1b[97m"
 const gray = "\x1b[90m"
@@ -143,6 +143,7 @@ export async function readCommandLine(
     }
 
     const onKeypress = (text: string | undefined, key: Key): void => {
+      if (isMouseKeypress(key)) return
       const matches = visibleItems()
       if (key.ctrl && key.name === "c") {
         if (value) updateValue("")
@@ -154,6 +155,8 @@ export async function readCommandLine(
       if (key.ctrl && key.name === "e") { cursor = value.length; render(); return }
       if (key.ctrl && key.name === "u") { updateValue(""); return }
       if (key.name === "escape") { dismissed = true; render(); return }
+      if (screen && key.name === "pageup") { screen.scrollTranscript(Math.max(1, (output.rows ?? 24) - 15)); return }
+      if (screen && key.name === "pagedown") { screen.scrollTranscript(-Math.max(1, (output.rows ?? 24) - 15)); return }
       if (key.name === "up") {
         if (matches.length > 0) selected = (selected - 1 + matches.length) % matches.length
         else if (history.length > 0) {
@@ -269,6 +272,7 @@ export async function pickItem<T extends string>(
     }
 
     const onKeypress = (text: string | undefined, key: Key): void => {
+      if (isMouseKeypress(key)) return
       const matches = filterPickerItems(query, items)
       if ((key.ctrl && key.name === "c") || key.name === "escape") { finish(undefined); return }
       if (key.name === "up") { selected = matches.length ? (selected - 1 + matches.length) % matches.length : 0; render(); return }
@@ -320,6 +324,7 @@ export async function promptApproval(
       resolve(approved)
     }
     const onKeypress = (text: string | undefined, key: Key): void => {
+      if (isMouseKeypress(key)) return
       if ((key.ctrl && key.name === "c") || key.name === "escape") { finish(false); return }
       if (key.name === "up") { screen.scrollApproval(-1); return }
       if (key.name === "down") { screen.scrollApproval(1); return }

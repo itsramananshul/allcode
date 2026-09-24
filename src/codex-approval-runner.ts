@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process"
 import { createInterface } from "node:readline"
 import type { ApprovalHandler } from "./approval-broker.js"
-import type { Invocation, ProcessResult, RunRequest } from "./types.js"
+import { JsonlActivity } from "./activity.js"
+import type { ActivityHandler, Invocation, ProcessResult, RunRequest } from "./types.js"
 
 interface RpcMessage {
   id?: number | string
@@ -16,6 +17,7 @@ export async function runCodexWithApprovals(
   request: RunRequest,
   handler: ApprovalHandler,
   signal?: AbortSignal,
+  onActivity?: ActivityHandler,
 ): Promise<ProcessResult> {
   const started = Date.now()
   const configuration: string[] = []
@@ -35,6 +37,8 @@ export async function runCodexWithApprovals(
   let finalText = ""
   let stderr = ""
   const items = new Map<string, Record<string, unknown>>()
+  const activity = onActivity ? new JsonlActivity("codex", onActivity) : undefined
+  const streamedItems = new Set<string>()
   let settled = false
   const pending = new Map<number, { resolve: (value: Record<string, unknown>) => void; reject: (error: Error) => void }>()
   let resolveTurn!: () => void
@@ -101,6 +105,19 @@ export async function runCodexWithApprovals(
       if (message.method === "item/started") {
         const item = message.params?.item as Record<string, unknown> | undefined
         if (item && typeof item.id === "string") items.set(item.id, item)
+      }
+      if (message.method === "item/started" || message.method === "item/updated" || message.method === "item/completed") {
+        const item = message.params?.item as { id?: string; type?: string } | undefined
+        const streamed = item?.id && streamedItems.has(item.id) && (item.type === "agentMessage" || item.type === "reasoning")
+        if (!streamed) activity?.write(`${JSON.stringify({ type: message.method.replace("/", "."), item })}\n`)
+      }
+      if (message.method === "item/agentMessage/delta" && typeof message.params?.delta === "string") {
+        if (typeof message.params.itemId === "string") streamedItems.add(message.params.itemId)
+        onActivity?.({ kind: "text", text: message.params.delta })
+      }
+      if (message.method === "item/reasoning/summaryTextDelta" && typeof message.params?.delta === "string") {
+        if (typeof message.params.itemId === "string") streamedItems.add(message.params.itemId)
+        onActivity?.({ kind: "reasoning", text: message.params.delta })
       }
       if (message.method === "item/completed") {
         const item = message.params?.item as { type?: string; text?: string } | undefined

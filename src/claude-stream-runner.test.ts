@@ -24,6 +24,30 @@ const request: RunRequest = {
 }
 
 describe("persistent Claude stream", () => {
+  it("surfaces streamed text, thinking, and tool activity before the final result", async () => {
+    const liveFixture = `
+const readline = require("node:readline")
+readline.createInterface({ input: process.stdin }).on("line", () => {
+  const send = value => process.stdout.write(JSON.stringify(value) + "\\n")
+  send({ type: "stream_event", event: { type: "content_block_delta", delta: { type: "thinking_delta", thinking: "Planning" } } })
+  send({ type: "stream_event", event: { type: "content_block_start", content_block: { type: "tool_use", name: "Read" } } })
+  send({ type: "stream_event", event: { type: "content_block_delta", delta: { type: "text_delta", text: "Ready" } } })
+  send({ type: "result", result: "Ready" })
+})
+`
+    const runner = new ClaudeStreamRunner(() => ({
+      command: process.execPath, args: ["-e", liveFixture, "--", "--output-format", "json"], cwd: process.cwd(),
+    }))
+    const events: Array<{ kind: string; text: string }> = []
+    try {
+      const result = await runner.run(request, async () => false, undefined, (event) => events.push(event))
+      expect(result.finalText).toBe("Ready")
+      expect(events).toContainEqual({ kind: "reasoning", text: "Planning" })
+      expect(events).toContainEqual({ kind: "tool", text: "Calling Read" })
+      expect(events).toContainEqual({ kind: "text", text: "Ready" })
+    } finally { await runner.close() }
+  })
+
   it("reuses one process across turns and restarts when settings change", async () => {
     const runner = new ClaudeStreamRunner(() => ({
       command: process.execPath,

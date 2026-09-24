@@ -100,7 +100,7 @@ export class OpenCodeAdapter extends BaseAdapter {
   buildInvocation(request: RunRequest, executable: string): Invocation {
     validateOptionalToken("model", request.model)
     validateOptionalToken("session ID", request.sessionId)
-    const args = ["run", "--format", "json", "--dir", request.cwd]
+    const args = ["run", "--format", "json", "--thinking", "--dir", request.cwd]
     const mode = request.permissionMode ?? "native"
     if (!["native", "ask", "auto", "deny"].includes(mode)) throw new Error(`Unsupported OpenCode permission mode: ${mode}`)
     if (mode === "auto") args.push("--auto")

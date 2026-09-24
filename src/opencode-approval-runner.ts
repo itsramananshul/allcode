@@ -2,7 +2,8 @@ import { spawn } from "node:child_process"
 import { createServer } from "node:net"
 import { randomUUID } from "node:crypto"
 import type { ApprovalHandler } from "./approval-broker.js"
-import type { Invocation, ProcessResult, RunRequest } from "./types.js"
+import { activityDetail, record } from "./activity.js"
+import type { ActivityHandler, Invocation, ProcessResult, RunRequest } from "./types.js"
 
 interface PendingPermission {
   id: string
@@ -29,6 +30,7 @@ export async function runOpenCodeWithApprovals(
   request: RunRequest,
   handler: ApprovalHandler,
   signal?: AbortSignal,
+  onActivity?: ActivityHandler,
 ): Promise<ProcessResult> {
   const started = Date.now()
   const port = await availablePort()
@@ -75,6 +77,7 @@ export async function runOpenCodeWithApprovals(
     if (!sessionID?.startsWith("ses")) throw new Error("OpenCode did not return a session ID")
     const before = await api(`/session/${encodeURIComponent(sessionID)}/message${directory}`) as Array<{ info: { id: string } }>
     const seenMessages = new Set(before.map((message) => message.info.id))
+    const seenParts = new Map<string, string>()
     const handled = new Set<string>()
     let deniedCount = 0
     const reply = async (permission: PendingPermission, version: "v1" | "v2"): Promise<void> => {
@@ -106,8 +109,29 @@ export async function runOpenCodeWithApprovals(
 
       const messages = await api(`/session/${encodeURIComponent(sessionID)}/message${directory}`) as Array<{
         info: { id: string; role: string; time?: { completed?: number }; finish?: string; error?: unknown }
-        parts: Array<{ type: string; text?: string }>
+        parts: Array<{ id?: string; type: string; text?: string; tool?: string; state?: unknown }>
       }>
+      for (const message of messages) {
+        if (message.info.role !== "assistant" || seenMessages.has(message.info.id)) continue
+        message.parts.forEach((part, index) => {
+          const key = `${message.info.id}:${part.id ?? index}`
+          if ((part.type === "text" || part.type === "reasoning") && typeof part.text === "string") {
+            const before = seenParts.get(key) ?? ""
+            if (before !== part.text) {
+              onActivity?.({ kind: part.type, text: part.text.startsWith(before) ? part.text.slice(before.length) : part.text })
+              seenParts.set(key, part.text)
+            }
+          } else if (part.type === "tool") {
+            const state = record(part.state)
+            const status = String(state.status ?? "running")
+            const marker = `${key}:${status}`
+            if (!seenParts.has(marker)) {
+              seenParts.set(marker, "1")
+              onActivity?.({ kind: "tool", text: `${part.tool ?? "Tool"} · ${status} · ${activityDetail(state.input ?? state.output ?? "")}` })
+            }
+          }
+        })
+      }
       const latest = messages.filter((message) => message.info.role === "assistant" && !seenMessages.has(message.info.id)).at(-1)
       const status = await api(`/session/status${directory}`) as Record<string, unknown>
       if (latest?.info.error) throw new Error(`OpenCode response failed: ${JSON.stringify(latest.info.error)}`)
