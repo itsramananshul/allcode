@@ -170,6 +170,7 @@ export class WorkspaceScreen {
   }
 
   appendUser(value: string): void {
+    this.scrollOffset = 0
     this.transcript.push({ kind: "user", text: value })
     this.render()
   }
