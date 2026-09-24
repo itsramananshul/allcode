@@ -54,20 +54,28 @@ export class ClaudeStreamRunner {
     }
   }
 
-  async run(request: RunRequest, onApproval: ApprovalHandler): Promise<AgentResult> {
-    await this.prepare(request)
-    this.approvalHandler = onApproval
-    return await new Promise<AgentResult>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.fail(new Error("Claude turn timed out"))
-        void this.close()
-      }, request.timeoutMs ?? 30 * 60 * 1000)
-      this.pending = { started: Date.now(), events: 0, stderr: "", timer, resolve, reject }
-      const message = JSON.stringify({ type: "user", message: { role: "user", content: request.prompt } }) + "\n"
-      this.child!.stdin.write(message, "utf8", (error) => {
-        if (error) this.fail(error)
+  async run(request: RunRequest, onApproval: ApprovalHandler, signal?: AbortSignal): Promise<AgentResult> {
+    const abort = (): void => { void this.close() }
+    signal?.addEventListener("abort", abort, { once: true })
+    try {
+      signal?.throwIfAborted()
+      await this.prepare(request)
+      signal?.throwIfAborted()
+      this.approvalHandler = onApproval
+      return await new Promise<AgentResult>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          this.fail(new Error("Claude turn timed out"))
+          void this.close()
+        }, request.timeoutMs ?? 30 * 60 * 1000)
+        this.pending = { started: Date.now(), events: 0, stderr: "", timer, resolve, reject }
+        const message = JSON.stringify({ type: "user", message: { role: "user", content: request.prompt } }) + "\n"
+        this.child!.stdin.write(message, "utf8", (error) => {
+          if (error) this.fail(error)
+        })
       })
-    })
+    } finally {
+      signal?.removeEventListener("abort", abort)
+    }
   }
 
   private async start(request: RunRequest): Promise<void> {
@@ -90,16 +98,16 @@ export class ClaudeStreamRunner {
       this.sessionId = request.sessionId
       this.lineBuffer = ""
       const decoder = new StringDecoder("utf8")
-      child.stdout.on("data", (chunk: Buffer) => this.readLines(decoder.write(chunk)))
-      child.stdout.on("end", () => this.readLines(decoder.end()))
+      child.stdout.on("data", (chunk: Buffer) => { if (this.child === child) this.readLines(decoder.write(chunk)) })
+      child.stdout.on("end", () => { if (this.child === child) this.readLines(decoder.end()) })
       child.stderr.on("data", (chunk: Buffer) => {
-        if (this.pending) this.pending.stderr = (this.pending.stderr + chunk.toString("utf8")).slice(-8192)
+        if (this.child === child && this.pending) this.pending.stderr = (this.pending.stderr + chunk.toString("utf8")).slice(-8192)
       })
-      child.on("error", (error) => this.fail(error))
+      child.on("error", (error) => { if (this.child === child) this.fail(error) })
       this.closeEvent = new Promise<void>((resolve) => {
         child.once("close", (code) => {
-          this.fail(new Error(`Claude stream exited${code === null ? "" : ` with code ${code}`}`))
           if (this.child === child) {
+            this.fail(new Error(`Claude stream exited${code === null ? "" : ` with code ${code}`}`))
             this.child = undefined
             this.key = undefined
           }

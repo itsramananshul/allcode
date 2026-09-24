@@ -43,6 +43,34 @@ readline.createInterface({ input: process.stdin }).on("line", (line) => {
 const request: RunRequest = { agent: "hermes", cwd: process.cwd(), prompt: "test", permissionMode: "default" }
 
 describe("Hermes ACP route", () => {
+  it("does not start a turn when already interrupted", async () => {
+    const runner = new HermesAcpRunner(() => ({
+      command: process.execPath, args: ["-e", fixture], cwd: process.cwd(),
+    }))
+    const controller = new AbortController()
+    controller.abort()
+    await expect(runner.run(request, undefined, controller.signal)).rejects.toThrow()
+    await runner.close()
+  })
+
+  it("cancels a running turn while an approval is pending", async () => {
+    const runner = new HermesAcpRunner(() => ({
+      command: process.execPath, args: ["-e", fixture], cwd: process.cwd(),
+    }))
+    const controller = new AbortController()
+    let approvalStarted!: () => void
+    const approvalSeen = new Promise<void>((resolve) => { approvalStarted = resolve })
+    try {
+      const running = runner.run(request, async () => {
+        approvalStarted()
+        return await new Promise<boolean>(() => {})
+      }, controller.signal)
+      await approvalSeen
+      controller.abort()
+      await expect(running).rejects.toThrow()
+    } finally { await runner.close() }
+  }, 10_000)
+
   it("discovers models, keeps a session, and routes approve/deny through the host", async () => {
     const runner = new HermesAcpRunner(() => ({
       command: process.execPath, args: ["-e", fixture], cwd: process.cwd(),

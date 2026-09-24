@@ -72,7 +72,10 @@ export async function runProcess(
       })
     })
 
-    if (invocation.stdin !== undefined) child.stdin.end(invocation.stdin)
+    if (signal?.aborted) abort()
+
+    if (signal?.aborted) child.stdin.destroy()
+    else if (invocation.stdin !== undefined) child.stdin.end(invocation.stdin)
     else child.stdin.end()
   })
 }

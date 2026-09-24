@@ -48,6 +48,7 @@ export async function runOpenCodeWithApprovals(
   const abort = new AbortController()
   const forwardAbort = () => abort.abort()
   signal?.addEventListener("abort", forwardAbort, { once: true })
+  if (signal?.aborted) forwardAbort()
   const api = async (path: string, method = "GET", body?: unknown): Promise<unknown> => {
     const response = await fetch(`${base}${path}`, {
       method,

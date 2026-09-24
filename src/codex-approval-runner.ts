@@ -50,6 +50,7 @@ export async function runCodexWithApprovals(
     rejectTurn(error)
   }
   const rpc = (method: string, params: unknown): Promise<Record<string, unknown>> => new Promise((resolve, reject) => {
+    if (settled) { reject(new Error("Codex approval run cancelled")); return }
     const id = nextId++
     pending.set(id, { resolve, reject })
     send({ id, method, params })
@@ -121,6 +122,7 @@ export async function runCodexWithApprovals(
   const timeout = setTimeout(() => fail(new Error("Codex approval run timed out")), request.timeoutMs ?? 30 * 60 * 1000)
   const onAbort = () => fail(new Error("Codex approval run cancelled"))
   signal?.addEventListener("abort", onAbort, { once: true })
+  if (signal?.aborted) onAbort()
 
   try {
     await rpc("initialize", {

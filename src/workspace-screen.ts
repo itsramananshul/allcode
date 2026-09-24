@@ -184,9 +184,23 @@ export class WorkspaceScreen {
     frame[2] = `${gray}${heading}${crop(this.cwd, Math.max(1, width - heading.length))}${reset}`
     frame[6] = `${gray}  One workspace. Every coding agent. Type / for commands.${reset}`
 
-    const menuCapacity = Math.max(0, rows - (this.pickerTitle ? 15 : 13))
+    const inputWidth = Math.max(1, width - 3)
+    const inputValue = this.approval ? "" : this.input
+    const inputCursor = Math.min(this.cursor, inputValue.length)
+    const inputLines: string[] = []
+    for (let index = 0; index <= inputValue.length; index += inputWidth) {
+      inputLines.push(inputValue.slice(index, index + inputWidth))
+    }
+    const cursorInputRow = Math.floor(inputCursor / inputWidth)
+    const maxInputRows = Math.max(1, Math.min(6, rows - 10))
+    const firstInputRow = Math.max(0, cursorInputRow - maxInputRows + 1)
+    const visibleInput = inputLines.slice(firstInputRow, firstInputRow + maxInputRows)
+    const inputRows = visibleInput.length
+    const inputTop = rows - inputRows - 3
+
+    const menuCapacity = Math.max(0, rows - (this.pickerTitle ? 15 : 13) - inputRows + 1)
     const shownChoices = this.approval ? [] : this.choices.slice(0, menuCapacity)
-    const menuStart = rows - 4 - shownChoices.length
+    const menuStart = inputTop - shownChoices.length
     if (this.pickerTitle) frame[menuStart - 2] = `${white}  ${crop(this.pickerTitle, width - 2)}${reset}`
     for (let index = 0; index < shownChoices.length; index += 1) {
       const choice = shownChoices[index]!
@@ -211,12 +225,14 @@ export class WorkspaceScreen {
       : transcript.slice(-bodyHeight)
     for (let index = 0; index < visible.length; index += 1) frame[bodyStart + index] = visible[index]!
 
-    frame[rows - 4] = `${gray}${"─".repeat(width)}${reset}`
-    const inputWidth = Math.max(1, width - 3)
-    const inputStart = Math.max(0, this.cursor - inputWidth + 1)
-    frame[rows - 3] = this.approval
-      ? `  ${this.approval.selected === "deny" ? inverse : ""}D Deny${reset}    ${this.approval.selected === "allow" ? inverse : ""}A Allow once${reset}`
-      : `${white}› ${this.input.slice(inputStart, inputStart + inputWidth)}${reset}`
+    frame[inputTop] = `${gray}${"─".repeat(width)}${reset}`
+    for (let index = 0; index < inputRows; index += 1) {
+      const absoluteRow = firstInputRow + index
+      const prefix = absoluteRow === 0 ? "› " : "  "
+      frame[inputTop + index + 1] = this.approval
+        ? `  ${this.approval.selected === "deny" ? inverse : ""}D Deny${reset}    ${this.approval.selected === "allow" ? inverse : ""}A Allow once${reset}`
+        : `${white}${prefix}${visibleInput[index]}${reset}`
+    }
     frame[rows - 2] = `${gray}${"─".repeat(width)}${reset}`
     frame[rows - 1] = this.approval
       ? `${gray}  ↑↓/PgUp/PgDn inspect request · Tab switch · Enter choose · Esc deny${reset}`
@@ -225,8 +241,9 @@ export class WorkspaceScreen {
     let buffer = "\x1b[?25l"
     for (let row = 0; row < rows; row += 1) buffer += `\x1b[${row + 1};1H\x1b[2K${frame[row]}`
     if (this.mascot) buffer += `\x1b[1;2H${this.mascot}`
-    const cursorColumn = Math.max(3, Math.min(columns, 3 + this.cursor - inputStart))
-    buffer += `\x1b[${rows - 2};${cursorColumn}H${this.approval ? "\x1b[?25l" : "\x1b[?25h"}`
+    const cursorColumn = Math.max(3, Math.min(columns, 3 + inputCursor % inputWidth))
+    const cursorRow = inputTop + 2 + cursorInputRow - firstInputRow
+    buffer += `\x1b[${cursorRow};${cursorColumn}H${this.approval ? "\x1b[?25l" : "\x1b[?25h"}`
     this.output.write(buffer)
   }
 }

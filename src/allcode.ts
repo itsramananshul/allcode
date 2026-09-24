@@ -1,8 +1,8 @@
 import { stdin as input, stdout as output } from "node:process"
-import { existsSync, mkdirSync, readFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { emitKeypressEvents } from "node:readline"
+import { emitKeypressEvents, type Key } from "node:readline"
 import { discoverAllModels, discoverEfforts, discoverModels, type ModelEntry } from "./models.js"
 import { runAgent } from "./runner.js"
 import { ClaudeStreamRunner } from "./claude-stream-runner.js"
@@ -17,6 +17,7 @@ import { installPreparedSkill, prepareSkill } from "./skill-installer.js"
 import { pluginModes } from "./plugin-agent.js"
 import { inspectPluginDraft, installPluginDraft } from "./plugin-installer.js"
 import { discoverCommandByName, discoverInstalledAgents, type InstalledAgentCandidate } from "./agent-discovery.js"
+import { prepareAdapterDraft } from "./adapter-draft.js"
 
 const gray = "\x1b[90m"
 const reset = "\x1b[0m"
@@ -214,26 +215,44 @@ async function addInteractively(kind: string | undefined, screen: WorkspaceScree
     const command = detected?.command ?? await askField("Installed executable path or command:", screen)
     if (protocol === "plugin") {
       const executable = resolveExecutable(command)
-      if (!/^[a-z][a-z0-9-]{1,39}$/.test(name)) throw new Error("Agent ID must be a lowercase slug")
-      const draft = resolve(cwd, ".allcode", "adapter-drafts", name)
-      if (existsSync(draft)) throw new Error(`Draft already exists; review or move it first: ${draft}`)
-      mkdirSync(draft, { recursive: true })
+      const { directory: draft, reused } = prepareAdapterDraft(cwd, name)
       const skillFile = fileURLToPath(new URL("../skills/allcode-agent-adapter/SKILL.md", import.meta.url))
       const instructions = readFileSync(skillFile, "utf8")
-      screen.append(`Asking ${agentLabel(currentAgent)} to build an adapter at ${draft}. This may take a while.`)
+      screen.append(`${reused ? "Resuming the existing" : "Creating an"} adapter draft at ${draft} with ${agentLabel(currentAgent)}. This may take a while.`)
       const animation = startWorkingAnimation(currentAgent, screen)
+      const controller = new AbortController()
+      const interrupt = (_text: string | undefined, key: Key): void => {
+        if ((key.ctrl && key.name === "c") || key.name === "escape") {
+          if (!controller.signal.aborted) {
+            controller.abort()
+            screen.setWorking("Stopping adapter build…")
+          }
+        }
+      }
+      input.on("keypress", interrupt)
       try {
         const result = await runAgent({ agent: currentAgent, cwd,
           model: model === "default" && currentAgent !== "hermes" && findRegisteredAgent(currentAgent)?.protocol !== "acp" ? undefined : model,
           effort, permissionMode,
-          prompt: `${instructions}\n\nTask: Integrate the already-installed CLI ${executable} as agent ${name} (${label}) in AllCode. Launch arguments detected: ${JSON.stringify(detected?.args ?? [])}. Write only inside ${draft}. Do not register or install the result. Inspect the CLI's real capabilities and test what you can. Report gaps honestly.` },
-        undefined, async ({ toolName, input: toolInput }) => {
+          prompt: `${instructions}\n\nTask: Integrate the already-installed CLI ${executable} as agent ${name} (${label}) in AllCode. Launch arguments detected: ${JSON.stringify(detected?.args ?? [])}. The draft directory is ${draft}. Inspect any existing files there first, preserve useful work, and complete or repair the draft as needed. Write only inside ${draft}. Do not register or install the result. Inspect the CLI's real capabilities and test what you can. Report gaps honestly.` },
+        controller.signal, async ({ toolName, input: toolInput }) => {
+          if (controller.signal.aborted) return false
           animation.pause()
           try { return await askApproval(toolName, toolInput, screen) }
-          finally { animation.resume() }
+          finally { if (!controller.signal.aborted) animation.resume() }
         })
+        if (controller.signal.aborted) throw new Error("Task interrupted")
         screen.appendAgent(agentLabel(currentAgent), result.finalText.trim(), animation.stop())
-      } catch (error) { animation.stop(); throw error }
+      } catch (error) {
+        animation.stop()
+        if (controller.signal.aborted) {
+          screen.append(`Adapter build interrupted. Draft kept at ${draft}; run /add again to resume.`)
+          return
+        }
+        throw error
+      } finally {
+        input.off("keypress", interrupt)
+      }
       const prepared = inspectPluginDraft(draft)
       if (prepared.manifest.name !== name || prepared.manifest.command !== executable) throw new Error("Generated adapter identity or executable differs from the requested one")
       if (detected && JSON.stringify(prepared.manifest.args.slice(0, detected.args.length)) !== JSON.stringify(detected.args)) throw new Error("Generated adapter dropped the detected launch arguments")
@@ -410,6 +429,16 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         continue
       }
       const animation = startWorkingAnimation(agent, screen)
+      const controller = new AbortController()
+      const interrupt = (_text: string | undefined, key: Key): void => {
+        if ((key.ctrl && key.name === "c") || key.name === "escape") {
+          if (!controller.signal.aborted) {
+            controller.abort()
+            screen.setWorking("Stopping task…")
+          }
+        }
+      }
+      input.on("keypress", interrupt)
       let approvalQueue: Promise<void> = Promise.resolve()
       try {
         const request = {
@@ -422,28 +451,35 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
           prompt: shared.promptFor(agent, line),
         }
         const onApproval = ({ toolName, input: toolInput }: { toolName: string; input: Record<string, unknown> }) => {
+          if (controller.signal.aborted) return Promise.resolve(false)
           const decision = approvalQueue.then(async () => {
             animation.pause()
             try { return await askApproval(toolName, toolInput, screen) }
-            finally { animation.resume() }
+            finally { if (!controller.signal.aborted) animation.resume() }
           })
           approvalQueue = decision.then(() => {}, () => {})
           return decision
         }
         const result = agent === "claude"
-          ? await claude.run({ ...request, agent: "claude" }, onApproval)
+          ? await claude.run({ ...request, agent: "claude" }, onApproval, controller.signal)
           : agent === "hermes"
-            ? await hermes.run({ ...request, agent: "hermes" }, onApproval)
-          : await runAgent(request, undefined, onApproval)
+            ? await hermes.run({ ...request, agent: "hermes" }, onApproval, controller.signal)
+          : await runAgent(request, controller.signal, onApproval)
+        if (controller.signal.aborted) throw new Error("Task interrupted")
         if (result.sessionId) shared.setNativeSession(agent, result.sessionId)
         shared.recordTurn(agent, line, result.finalText.trim())
         const elapsed = animation.stop()
         screen.appendAgent(agentLabel(agent), result.finalText.trim(), elapsed)
       } catch (error) {
         animation.stop()
-        const message = error instanceof Error ? error.message : String(error)
-        shared.recordFailure(agent, line, message)
-        screen.append(`Error: ${message}\n`)
+        if (controller.signal.aborted) screen.append("Task interrupted.")
+        else {
+          const message = error instanceof Error ? error.message : String(error)
+          shared.recordFailure(agent, line, message)
+          screen.append(`Error: ${message}\n`)
+        }
+      } finally {
+        input.off("keypress", interrupt)
       }
     }
   } finally {

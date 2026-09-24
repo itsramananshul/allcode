@@ -20,4 +20,17 @@ describe("bounded process execution", () => {
     expect(result.timedOut).toBe(true)
     expect(result.exitCode).not.toBe(0)
   })
+
+  it("stops a running process when the signal is aborted", async () => {
+    const controller = new AbortController()
+    const running = runProcess({
+      command: process.execPath,
+      args: ["-e", "setInterval(() => {}, 1000)"],
+      cwd: process.cwd(),
+    }, 5_000, controller.signal)
+    setTimeout(() => controller.abort(), 100)
+    const result = await running
+    expect(result.exitCode).not.toBe(0)
+    expect(result.timedOut).toBe(false)
+  }, 10_000)
 })

@@ -42,4 +42,31 @@ describe("persistent Claude stream", () => {
       await runner.close()
     }
   })
+
+  it("interrupts an active turn and can start another one", async () => {
+    const cancellableFixture = `
+const readline = require("node:readline")
+readline.createInterface({ input: process.stdin }).on("line", (line) => {
+  const prompt = JSON.parse(line).message.content
+  if (prompt === "hang") return
+  process.stdout.write(JSON.stringify({ type: "result", result: prompt }) + "\\n")
+})
+`
+    const runner = new ClaudeStreamRunner(() => ({
+      command: process.execPath,
+      args: ["-e", cancellableFixture, "--", "--output-format", "json"],
+      cwd: process.cwd(),
+    }))
+    try {
+      const controller = new AbortController()
+      const turn = runner.run({ ...request, prompt: "hang" }, async () => false, controller.signal)
+      setTimeout(() => controller.abort(), 100)
+      await expect(turn).rejects.toThrow()
+
+      const next = await runner.run({ ...request, prompt: "ready" }, async () => false)
+      expect(next.finalText).toBe("ready")
+    } finally {
+      await runner.close()
+    }
+  }, 10_000)
 })

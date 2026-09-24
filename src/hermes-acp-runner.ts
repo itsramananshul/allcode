@@ -84,18 +84,19 @@ export class HermesAcpRunner {
 
   async run(request: RunRequest, onApproval?: ApprovalHandler, signal?: AbortSignal): Promise<AgentResult> {
     const started = Date.now()
-    await this.prepare(request)
-    this.approvalHandler = onApproval
-    this.collecting = true
-    this.chunks = []
-    this.events = 0
     const abort = (): void => {
-      void this.rpc("session/cancel", { sessionId: this.sessionId }, 5_000).catch(() => {})
+      if (this.collecting) void this.rpc("session/cancel", { sessionId: this.sessionId }, 5_000).catch(() => {})
       void this.close()
     }
-    if (signal?.aborted) abort()
-    else signal?.addEventListener("abort", abort, { once: true })
+    signal?.addEventListener("abort", abort, { once: true })
     try {
+      signal?.throwIfAborted()
+      await this.prepare(request)
+      signal?.throwIfAborted()
+      this.approvalHandler = onApproval
+      this.collecting = true
+      this.chunks = []
+      this.events = 0
       const result = await this.rpc("session/prompt", {
         sessionId: this.sessionId,
         prompt: [{ type: "text", text: request.prompt }],
