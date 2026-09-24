@@ -40,6 +40,16 @@ export function extractSessionId(events: unknown[]): string | undefined {
   return undefined
 }
 
+export function extractErrorText(events: unknown[]): string | undefined {
+  for (const event of [...events].reverse()) {
+    if (!isRecord(event) || event.type !== "error" || !isRecord(event.error)) continue
+    const error = event.error
+    if (isRecord(error.data) && typeof error.data.message === "string") return error.data.message
+    if (typeof error.message === "string") return error.message
+  }
+  return undefined
+}
+
 function textCandidates(value: unknown, output: string[]): void {
   if (Array.isArray(value)) {
     value.forEach((item) => textCandidates(item, output))

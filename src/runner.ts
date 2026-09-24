@@ -8,7 +8,15 @@ import { HermesAcpRunner } from "./hermes-acp-runner.js"
 import { findRegisteredAgent } from "./agent-registry.js"
 import { runPlugin } from "./plugin-agent.js"
 import { JsonlActivity } from "./activity.js"
+import { extractErrorText, parseJsonEvents } from "./parsers.js"
 import type { ActivityHandler, AgentResult, RunRequest } from "./types.js"
+
+export class AgentRunError extends Error {
+  constructor(message: string, readonly sessionId?: string, readonly timedOut = false) {
+    super(message)
+    this.name = "AgentRunError"
+  }
+}
 
 export async function runAgent(request: RunRequest, signal?: AbortSignal, onApproval?: ApprovalHandler, onActivity?: ActivityHandler): Promise<AgentResult> {
   const registered = findRegisteredAgent(request.agent)
@@ -39,8 +47,9 @@ export async function runAgent(request: RunRequest, signal?: AbortSignal, onAppr
     activity?.end()
     const parsed = adapter.parse(result)
     if (parsed.exitCode !== 0) {
-      const detail = parsed.stderr.trim() || parsed.finalText || `exit code ${parsed.exitCode}`
-      throw new Error(`${request.agent} failed: ${detail}`)
+      const detail = extractErrorText(parseJsonEvents(parsed.stdout)) ||
+        (parsed.timedOut ? "Process timed out" : undefined) || parsed.stderr.trim() || parsed.finalText || `exit code ${parsed.exitCode}`
+      throw new AgentRunError(`${request.agent} failed: ${detail}`, parsed.sessionId, /timed out/i.test(detail))
     }
     return parsed
   } finally {

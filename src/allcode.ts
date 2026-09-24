@@ -4,12 +4,12 @@ import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { emitKeypressEvents, type Key } from "node:readline"
 import { discoverAllModels, discoverEfforts, discoverModels, type ModelEntry } from "./models.js"
-import { runAgent } from "./runner.js"
+import { AgentRunError, runAgent } from "./runner.js"
 import { ClaudeStreamRunner } from "./claude-stream-runner.js"
 import { HermesAcpRunner } from "./hermes-acp-runner.js"
 import { SharedSession } from "./session.js"
 import { pickItem, promptApproval, readCommandLine, type PickerItem } from "./terminal-ui.js"
-import type { AgentName } from "./types.js"
+import type { AgentName, AgentResult } from "./types.js"
 import { WorkspaceScreen } from "./workspace-screen.js"
 import { findRegisteredAgent, isKnownAgent, registerAgent, registeredAgents } from "./agent-registry.js"
 import { resolveExecutable } from "./executable.js"
@@ -17,7 +17,7 @@ import { installPreparedSkill, prepareSkill } from "./skill-installer.js"
 import { pluginModes } from "./plugin-agent.js"
 import { inspectPluginDraft, installPluginDraft } from "./plugin-installer.js"
 import { discoverCommandByName, discoverInstalledAgents, type InstalledAgentCandidate } from "./agent-discovery.js"
-import { prepareAdapterDraft } from "./adapter-draft.js"
+import { prepareAdapterDraft, readAdapterBuildSession, writeAdapterBuildSession } from "./adapter-draft.js"
 
 const gray = "\x1b[90m"
 const reset = "\x1b[0m"
@@ -235,16 +235,37 @@ async function addInteractively(kind: string | undefined, screen: WorkspaceScree
       }
       input.on("keypress", interrupt)
       try {
-        const result = await runAgent({ agent: currentAgent, cwd,
-          model: model === "default" && currentAgent !== "hermes" && findRegisteredAgent(currentAgent)?.protocol !== "acp" ? undefined : model,
-          effort, permissionMode,
-          prompt: `${instructions}\n\nTask: Integrate the already-installed CLI ${executable} as agent ${name} (${label}) in AllCode. Launch arguments detected: ${JSON.stringify(detected?.args ?? [])}. The draft directory is ${draft}. Inspect any existing files there first, preserve useful work, and complete or repair the draft as needed. Write only inside ${draft}. Do not register or install the result. Inspect the CLI's real capabilities and test what you can. Report gaps honestly.` },
-        controller.signal, async ({ toolName, input: toolInput }) => {
-          if (controller.signal.aborted) return false
-          animation.pause()
-          try { return await askApproval(toolName, toolInput, screen) }
-          finally { if (!controller.signal.aborted) animation.resume() }
-        })
+        let sessionId = readAdapterBuildSession(draft, currentAgent, executable)
+        let result: AgentResult | undefined
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            result = await runAgent({ agent: currentAgent, cwd, sessionId,
+              model: model === "default" && currentAgent !== "hermes" && findRegisteredAgent(currentAgent)?.protocol !== "acp" ? undefined : model,
+              effort, permissionMode,
+              prompt: sessionId
+                ? `Continue building the ${name} adapter in ${draft} from this session. Inspect the draft, correct the last failed probe if needed, and finish the adapter. Do not register or install it.`
+                : `${instructions}\n\nTask: Integrate the already-installed CLI ${executable} as agent ${name} (${label}) in AllCode. Launch arguments detected: ${JSON.stringify(detected?.args ?? [])}. The draft directory is ${draft}. Inspect any existing files there first, preserve useful work, and complete or repair the draft as needed. Write only inside ${draft}. Do not register or install the result. Inspect the CLI's real capabilities and test what you can. Report gaps honestly.` },
+            controller.signal, async ({ toolName, input: toolInput }) => {
+              if (controller.signal.aborted) return false
+              animation.pause()
+              try { return await askApproval(toolName, toolInput, screen) }
+              finally { if (!controller.signal.aborted) animation.resume() }
+            })
+            if (result.sessionId) writeAdapterBuildSession(draft, currentAgent, executable, result.sessionId)
+            break
+          } catch (error) {
+            if (error instanceof AgentRunError && error.sessionId) {
+              sessionId = error.sessionId
+              writeAdapterBuildSession(draft, currentAgent, executable, sessionId)
+            }
+            if (error instanceof AgentRunError && error.timedOut && sessionId && attempt === 0 && !controller.signal.aborted) {
+              screen.append(`${agentLabel(currentAgent)} timed out; continuing its saved session.`)
+              continue
+            }
+            throw error
+          }
+        }
+        if (!result) throw new Error("Adapter build stopped without a result")
         if (controller.signal.aborted) throw new Error("Task interrupted")
         screen.appendAgent(agentLabel(currentAgent), result.finalText.trim(), animation.stop())
       } catch (error) {
