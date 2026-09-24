@@ -9,6 +9,7 @@ import { WorkspaceScreen } from "./workspace-screen.js"
 describe("command palette", () => {
   it("opens with every AllCode command", () => {
     expect(filterCommandItems("/")).toEqual(commandItems)
+    expect(filterCommandItems("/co").map((item) => item.command)).toContain("/copy")
   })
 
   it("filters commands while the user types", () => {

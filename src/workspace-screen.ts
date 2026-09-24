@@ -194,6 +194,17 @@ export class WorkspaceScreen {
     this.render()
   }
 
+  transcriptText(): string {
+    const last = this.transcript.at(-1)
+    const blocks = last?.kind === "user" && last.text.trim() === "/copy"
+      ? this.transcript.slice(0, -1) : this.transcript
+    return blocks.map((block) => {
+      if (block.kind === "agent") return `${block.agent} · ${(block.elapsedMs / 1000).toFixed(1)}s\n${block.text}`
+      if (block.kind === "activity") return `↳ ${block.text}`
+      return block.text
+    }).join("\n\n")
+  }
+
   clearLiveActivity(): void {
     this.liveText = ""
     this.liveReasoning = ""

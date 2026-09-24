@@ -5,6 +5,21 @@ import { describe, expect, it } from "vitest"
 import { WorkspaceScreen } from "./workspace-screen.js"
 
 describe("workspace transcript", () => {
+  it("exports the whole unwrapped conversation without ANSI codes or the copy command", () => {
+    const output = Object.assign(new EventEmitter(), {
+      columns: 30,
+      rows: 24,
+      write() { return true },
+    }) as unknown as WriteStream
+    const screen = new WorkspaceScreen(output, "C:\\project", "Codex", "default")
+    const longPrompt = "a".repeat(90)
+    screen.appendUser(longPrompt)
+    screen.appendActivity({ kind: "tool", text: "Read · index.ts" })
+    screen.appendAgent("Codex", "A reply with é and 🧪", 1500)
+    screen.appendUser("/copy")
+    expect(screen.transcriptText()).toBe(`${longPrompt}\n\n↳ Read · index.ts\n\nCodex · 1.5s\nA reply with é and 🧪`)
+  })
+
   it("renders live tool activity and streamed text while the agent works", () => {
     const writes: string[] = []
     const output = Object.assign(new EventEmitter(), {

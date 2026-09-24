@@ -18,6 +18,7 @@ import { pluginModes } from "./plugin-agent.js"
 import { inspectPluginDraft, installPluginDraft } from "./plugin-installer.js"
 import { discoverCommandByName, discoverInstalledAgents, type InstalledAgentCandidate } from "./agent-discovery.js"
 import { prepareAdapterDraft } from "./adapter-draft.js"
+import { copyToClipboard } from "./clipboard.js"
 
 const gray = "\x1b[90m"
 const reset = "\x1b[0m"
@@ -35,7 +36,7 @@ function defaultPermissionMode(agent: AgentName): string {
 }
 
 function showHelp(screen: WorkspaceScreen): void {
-  screen.append("Commands\n/agent [name]   Choose a coding agent\n/add            Register an agent or install a skill\n/model [id]     Select a model for the active agent\n/models         Select a model from any installed agent\n/effort         Set the active model's reasoning effort\n/mode           Set the active agent's permission mode\n/status         Show the active route and session\n/clear          Clear the workspace\n/exit           Exit AllCode\n")
+  screen.append("Commands\n/agent [name]   Choose a coding agent\n/add            Register an agent or install a skill\n/model [id]     Select a model for the active agent\n/models         Select a model from any installed agent\n/effort         Set the active model's reasoning effort\n/mode           Set the active agent's permission mode\n/status         Show the active route and session\n/copy           Copy the full conversation\n/clear          Clear the workspace\n/exit           Exit AllCode\n")
 }
 
 async function chooseAgent(current: AgentName, screen: WorkspaceScreen): Promise<AgentName> {
@@ -363,6 +364,13 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
 
       if (command === "/exit" || command === "/quit") break
       if (command === "/help") { showHelp(screen); continue }
+      if (command === "/copy") {
+        const text = screen.transcriptText()
+        if (!text) { screen.append("Nothing to copy yet."); continue }
+        try { await copyToClipboard(text); screen.append("Conversation copied to clipboard.") }
+        catch (error) { screen.append(`Copy failed: ${error instanceof Error ? error.message : String(error)}`) }
+        continue
+      }
       if (command === "/add") {
         try { await addInteractively(parts[0]?.toLowerCase(), screen, agent, cwd, model, effort, permissionMode) }
         catch (error) { screen.setWorking(""); screen.append(`Add failed: ${error instanceof Error ? error.message : String(error)}`) }

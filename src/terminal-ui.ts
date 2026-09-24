@@ -29,6 +29,7 @@ export const commandItems: CommandItem[] = [
   { command: "/mode", usage: "/mode", description: "Choose the active agent's permission mode" },
   { command: "/permissions", usage: "/permissions", description: "Alias for /mode" },
   { command: "/status", usage: "/status", description: "Show the active route and session" },
+  { command: "/copy", usage: "/copy", description: "Copy the full conversation to the clipboard" },
   { command: "/clear", usage: "/clear", description: "Clear the workspace transcript" },
   { command: "/help", usage: "/help", description: "Show the command reference" },
   { command: "/exit", usage: "/exit", description: "Exit AllCode" },
