@@ -185,7 +185,7 @@ export async function startNativeWorkspace(initialAgent: AgentName, cwdInput: st
     }
     launched.add(agent)
     const childGeneration = ++generation
-    process.stdout.write(`\x1b]0;All Code — ${agent}\x07`)
+    process.stdout.write(`\x1b]0;AllCode — ${agent}\x07`)
     child = pty.spawn(spec.command, spec.args, {
       name: spec.env.TERM,
       cols: process.stdout.columns ?? 120,

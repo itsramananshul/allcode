@@ -1,4 +1,4 @@
-# Contributing to All Code
+# Contributing to AllCode
 
 ## Set up the repository
 
@@ -31,7 +31,7 @@ npm run check
 npm pack --dry-run
 ```
 
-The package preview must contain `dist/cli.js`, the documentation, and the All Code assets.
+The package preview must contain `dist/cli.js`, the documentation, and the AllCode assets.
 
 ## Pull requests
 

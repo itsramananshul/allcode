@@ -12,7 +12,7 @@ allcode [--agent claude|opencode|codex|hermes] [--cwd PATH]
 
 Typing `/` opens the command palette immediately. Continue typing to filter it, move with the up and down arrow keys, press Enter to run the highlighted command, or press Tab to complete it in the input. Escape dismisses the palette.
 
-![All Code command palette](images/command-palette.svg)
+![AllCode command palette](images/command-palette.svg)
 
 | Command | Description |
 | --- | --- |
@@ -35,7 +35,7 @@ Typing `/` opens the command palette immediately. Continue typing to filter it, 
 | `/help` | Print the command list |
 | `/exit` | Exit; `/quit` is an alias |
 
-Input that does not match an All Code command is sent to the active agent as a prompt. Agent-specific interactive slash commands are not added to the All Code palette; use `allcode native --agent <name>` when you need that agent's own terminal commands.
+Input that does not match an AllCode command is sent to the active agent as a prompt. Agent-specific interactive slash commands are not added to the AllCode palette; use `allcode native --agent <name>` when you need that agent's own terminal commands.
 
 `/agent`, `/add`, `/model`, `/models`, `/effort`, and `/mode` open searchable pickers. Their lists support arrow-key navigation, Enter or Tab to select, and Escape to keep the current value.
 
@@ -50,9 +50,9 @@ Input that does not match an All Code command is sent to the active agent as a p
 | Codex | Read-only, Workspace write, Untrusted commands, No prompts, Full access |
 | Hermes | Ask before edits, Accept workspace edits, Don't ask for edits |
 
-When a provider asks for permission, the proposed command, tool input, or file change appears in a scrollable All Code prompt. Deny is selected by default. Use the arrow keys or Page Up/Down to inspect, Tab to switch between Deny and Allow once, then Enter to decide. `A` allows once, `D` or Escape denies. Bypass/auto-approve modes require a separate confirmation when selected. Provider and organization policies can still deny an action.
+When a provider asks for permission, the proposed command, tool input, or file change appears in a scrollable AllCode prompt. Deny is selected by default. Use the arrow keys or Page Up/Down to inspect, Tab to switch between Deny and Allow once, then Enter to decide. `A` allows once, `D` or Escape denies. Bypass/auto-approve modes require a separate confirmation when selected. Provider and organization policies can still deny an action.
 
-![All Code approval prompt preview](images/approval-prompt.svg)
+![AllCode approval prompt preview](images/approval-prompt.svg)
 
 Approval prompts are part of the interactive `allcode` workspace. One-shot `allcode run` calls and background delegated tasks do not display this prompt; see [Security](security.md#agent-permissions).
 
@@ -72,14 +72,14 @@ Type `/add` in the workspace to choose Agent or Skill. The agent picker scans co
 allcode add agent ./path/to/adapter-draft
 ```
 
-The draft needs `adapter.json` and `agent.mjs`; see the [adapter-authoring skill](../skills/allcode-agent-adapter/SKILL.md). All Code requires confirmation before installing executable adapter code. You can also register a basic route directly:
+The draft needs `adapter.json` and `agent.mjs`; see the [adapter-authoring skill](../skills/allcode-agent-adapter/SKILL.md). AllCode requires confirmation before installing executable adapter code. You can also register a basic route directly:
 
 ```bash
 allcode add agent myagent --protocol acp --command /absolute/path/to/myagent --arg acp
 allcode add agent mycli --protocol oneshot --command /absolute/path/to/mycli --arg run --arg --plain
 ```
 
-The command must already be installed. Launch arguments are passed directly, without a shell. For one-shot CLIs, All Code sends the prompt on stdin unless an argument contains `{prompt}`. Add `--model MODEL_ID` for each model you want listed; include `{model}` in an argument if selecting that model should reach the CLI. One-shot output is read as plain text from stdout. It has no native session resume, model discovery, or All Code approval callback. ACP agents supply those capabilities through their own server. If the CLI reads `SKILL.md` files, pass each verified global directory with `--skill-dir PATH`; skill installation will include it. Registrations are stored in `~/.allcode/agents.json` and appear in `/agent`, `/models`, `allcode agents`, and delegation.
+The command must already be installed. Launch arguments are passed directly, without a shell. For one-shot CLIs, AllCode sends the prompt on stdin unless an argument contains `{prompt}`. Add `--model MODEL_ID` for each model you want listed; include `{model}` in an argument if selecting that model should reach the CLI. One-shot output is read as plain text from stdout. It has no native session resume, model discovery, or AllCode approval callback. ACP agents supply those capabilities through their own server. If the CLI reads `SKILL.md` files, pass each verified global directory with `--skill-dir PATH`; skill installation will include it. Registrations are stored in `~/.allcode/agents.json` and appear in `/agent`, `/models`, `allcode agents`, and delegation.
 
 Install a skill from a local folder or a GitHub repository whose root contains `SKILL.md` (use `#path/to/skill` for a subdirectory):
 
@@ -88,7 +88,7 @@ allcode add skill ./my-skill
 allcode add skill https://github.com/owner/repo#skills/my-skill
 ```
 
-All Code shows the skill name and destinations, then asks before copying. In a non-interactive shell, pass `--yes` after reviewing the source. Existing same-name folders are skipped, never overwritten. GitHub skill sources are cloned for inspection; agent executables are not downloaded automatically. See [Adding agents and skills](agents-and-models.md#adding-agents-and-skills) for the destination rules.
+AllCode shows the skill name and destinations, then asks before copying. In a non-interactive shell, pass `--yes` after reviewing the source. Existing same-name folders are skipped, never overwritten. GitHub skill sources are cloned for inspection; agent executables are not downloaded automatically. See [Adding agents and skills](agents-and-models.md#adding-agents-and-skills) for the destination rules.
 
 ## Inspect models
 
@@ -123,7 +123,7 @@ The command prints the native session ID and final response as JSON.
 allcode native --agent opencode
 ```
 
-Native mode embeds the selected agent's own terminal interface. Use the default `allcode` command for the shared All Code interface and persisted cross-agent conversation.
+Native mode embeds the selected agent's own terminal interface. Use the default `allcode` command for the shared AllCode interface and persisted cross-agent conversation.
 
 ## MCP server
 
@@ -131,7 +131,7 @@ Native mode embeds the selected agent's own terminal interface. Use the default 
 allcode mcp
 ```
 
-Starts the All Code MCP server over standard input and output. Agent adapters configure this automatically.
+Starts the AllCode MCP server over standard input and output. Agent adapters configure this automatically.
 
 The server exposes:
 

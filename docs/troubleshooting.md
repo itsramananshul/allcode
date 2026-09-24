@@ -33,13 +33,13 @@ Run the agent's catalog command directly:
 opencode models
 ```
 
-For Codex, confirm that `codex app-server --stdio` starts. All Code stops Codex model discovery after 12 seconds and prints the catalog error.
+For Codex, confirm that `codex app-server --stdio` starts. AllCode stops Codex model discovery after 12 seconds and prints the catalog error.
 
-For Hermes, run `hermes acp --check`. All Code reads the available models from a Hermes ACP session; the first discovery can take time while Hermes loads its configuration and tools.
+For Hermes, run `hermes acp --check`. AllCode reads the available models from a Hermes ACP session; the first discovery can take time while Hermes loads its configuration and tools.
 
 ## Hermes reports an unsupported default model
 
-The default model belongs to your Hermes provider configuration, not All Code. Run `allcode models hermes`, then select an available provider-prefixed model with `/model` or `allcode run hermes --model <id>`. This changes the All Code session selection without editing your Hermes settings.
+The default model belongs to your Hermes provider configuration, not AllCode. Run `allcode models hermes`, then select an available provider-prefixed model with `/model` or `allcode run hermes --model <id>`. This changes the AllCode session selection without editing your Hermes settings.
 
 ## `403`, login required, or client restriction
 
@@ -64,12 +64,12 @@ The provider currently has no serving endpoint for that model. Select another en
 
 ## Claude Code takes longer than its native terminal
 
-Interactive All Code keeps one Claude Code streaming process open across turns. It starts when you open a Claude workspace or switch to Claude, so the next request can reuse it. The first request may still wait while Claude connects your MCP servers and permission tool; changing Claude's model, effort, or permission mode also restarts that process. Later requests with unchanged settings avoid this startup. One-shot `allcode run claude` and background delegated tasks still start separate processes.
+Interactive AllCode keeps one Claude Code streaming process open across turns. It starts when you open a Claude workspace or switch to Claude, so the next request can reuse it. The first request may still wait while Claude connects your MCP servers and permission tool; changing Claude's model, effort, or permission mode also restarts that process. Later requests with unchanged settings avoid this startup. One-shot `allcode run claude` and background delegated tasks still start separate processes.
 
 ## Context did not follow an agent switch
 
-Run `/status` and open the displayed `.allcode/session.json`. Shared messages apply to turns made through All Code; conversations created directly in another CLI are not imported.
+Run `/status` and open the displayed `.allcode/session.json`. Shared messages apply to turns made through AllCode; conversations created directly in another CLI are not imported.
 
 ## Start over
 
-Exit All Code and remove `.allcode/` from the workspace. This resets the shared conversation and saved model choices. Native CLI authentication is unchanged.
+Exit AllCode and remove `.allcode/` from the workspace. This resets the shared conversation and saved model choices. Native CLI authentication is unchanged.

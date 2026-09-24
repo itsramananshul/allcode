@@ -179,7 +179,7 @@ export class WorkspaceScreen {
     const width = columns - 1
     const frame = Array<string>(rows).fill("")
     const heading = this.mascot ? "                    " : "  "
-    frame[0] = `${white}${heading}All Code v${version}${reset}`
+    frame[0] = `${white}${heading}AllCode v${version}${reset}`
     frame[1] = `${white}${heading}${this.agent}${reset} ${gray}· ${this.model}${reset}`
     frame[2] = `${gray}${heading}${crop(this.cwd, Math.max(1, width - heading.length))}${reset}`
     frame[6] = `${gray}  One workspace. Every coding agent. Type / for commands.${reset}`

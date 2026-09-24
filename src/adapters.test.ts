@@ -12,7 +12,7 @@ describe("agent adapters", () => {
     expect(invocation.args.join(" ")).not.toContain("bypassPermissions")
   })
 
-  it("routes Claude manual approvals to All Code and passes effort", () => {
+  it("routes Claude manual approvals to AllCode and passes effort", () => {
     const invocation = new ClaudeAdapter().buildInvocation({
       ...base, permissionMode: "manual", effort: "high", approval: { port: 41000, token: "test-token" },
     }, "claude.exe")

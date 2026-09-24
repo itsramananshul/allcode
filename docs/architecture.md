@@ -1,10 +1,10 @@
 # Architecture
 
-All Code is a terminal interface over four installed coding agents.
+AllCode is a terminal interface over four installed coding agents.
 
 ```text
 ┌─────────────────────────────────────────────┐
-│                 All Code                    │
+│                 AllCode                    │
 │  prompt loop · slash commands · session     │
 └─────────────────────┬───────────────────────┘
                       │ active route
@@ -15,13 +15,13 @@ All Code is a terminal interface over four installed coding agents.
       └───────────┴───────┬───┴───────────┘
                       │
                       ▼
-              All Code MCP server
+              AllCode MCP server
                  delegated tasks
 ```
 
 ## Prompt loop
 
-`src/allcode.ts` owns the terminal. It handles All Code slash commands locally, stores model/effort/permission selections per agent, and sends other input through `runAgent`. `src/workspace-screen.ts` draws the fixed input, searchable pickers, and approval review pane.
+`src/allcode.ts` owns the terminal. It handles AllCode slash commands locally, stores model/effort/permission selections per agent, and sends other input through `runAgent`. `src/workspace-screen.ts` draws the fixed input, searchable pickers, and approval review pane.
 
 ## Adapters
 
@@ -36,7 +36,7 @@ All Code is a terminal interface over four installed coding agents.
 
 The interactive Claude route keeps a print-mode `stream-json` process in `src/claude-stream-runner.ts`. It prestarts when Claude becomes active, accepts subsequent turns over the same stdin stream, and restarts with `--resume` when Claude's model, effort, or permission mode changes. The one-shot and delegated routes still use a separate process for each task.
 
-Interactive approvals use a separate path when the chosen permission mode needs one: Claude Code connects to the local approval broker, OpenCode uses a local server session, Codex uses its app-server protocol, and Hermes sends ACP `session/request_permission` requests. The resulting requests go through the same All Code approval pane. Headless `allcode run` and delegated Hermes tasks deny ACP requests when no approval handler is available.
+Interactive approvals use a separate path when the chosen permission mode needs one: Claude Code connects to the local approval broker, OpenCode uses a local server session, Codex uses its app-server protocol, and Hermes sends ACP `session/request_permission` requests. The resulting requests go through the same AllCode approval pane. Headless `allcode run` and delegated Hermes tasks deny ACP requests when no approval handler is available.
 
 ## Sessions
 
@@ -67,6 +67,6 @@ Every child adapter receives the MCP server configuration. This lets an agent se
 
 ## Adding an agent
 
-Built-in adapters live in `src/adapters.ts`. `/add agent` stores registrations in `~/.allcode/agents.json`; `src/agent-registry.ts` lists them alongside built-in routes. ACP registrations use the ACP runner for model catalogs, sessions, and approval requests. One-shot registrations use direct process spawning, stdin or a `{prompt}` argument, and plain-text stdout. Custom adapters are copied to `~/.allcode/adapters/<name>` and implement the v1 plugin API (`run`, with optional model, effort, and permission-mode catalogs). They can call All Code's approval handler and MCP server. All routes receive shared conversation through the session handoff layer. Custom adapter code is outside the package and survives package updates, though the v1 API must remain compatible.
+Built-in adapters live in `src/adapters.ts`. `/add agent` stores registrations in `~/.allcode/agents.json`; `src/agent-registry.ts` lists them alongside built-in routes. ACP registrations use the ACP runner for model catalogs, sessions, and approval requests. One-shot registrations use direct process spawning, stdin or a `{prompt}` argument, and plain-text stdout. Custom adapters are copied to `~/.allcode/adapters/<name>` and implement the v1 plugin API (`run`, with optional model, effort, and permission-mode catalogs). They can call AllCode's approval handler and MCP server. All routes receive shared conversation through the session handoff layer. Custom adapter code is outside the package and survives package updates, though the v1 API must remain compatible.
 
 `src/skill-installer.ts` reads local or GitHub-hosted `SKILL.md` folders, shows target paths, and copies only after confirmation. Codex and OpenCode share the `.agents/skills` destination; Claude Code and Hermes have separate destinations. A custom agent may add its own declared skill directories.

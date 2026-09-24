@@ -21,7 +21,7 @@ describe("workspace transcript", () => {
 
     const frame = writes.at(-1) ?? ""
     const version = (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }).version
-    expect(frame).toContain(`All Code v${version}`)
+    expect(frame).toContain(`AllCode v${version}`)
     expect(frame).toContain("\x1b[48;5;238m\x1b[97m  hello")
     expect(frame).toContain("\x1b[90m  Claude Code · 1.2s")
     expect(frame).toContain("\x1b[97m  Hi there.")

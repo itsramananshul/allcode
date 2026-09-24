@@ -61,7 +61,7 @@ export async function runCodexWithApprovals(
     const isCommand = method === "item/commandExecution/requestApproval" || method === "execCommandApproval"
     const isFile = method === "item/fileChange/requestApproval" || method === "applyPatchApproval"
     if (!isPermission && !isCommand && !isFile) {
-      send({ id: message.id, error: { code: -32601, message: "All Code cannot answer this request" } })
+      send({ id: message.id, error: { code: -32601, message: "AllCode cannot answer this request" } })
       return
     }
     const fileItem = isFile && typeof params.itemId === "string" ? items.get(params.itemId) : undefined
@@ -78,9 +78,9 @@ export async function runCodexWithApprovals(
     if (isPermission) {
       send({ id: message.id, result: { permissions: approved ? params.permissions : {}, scope: "turn" } })
     } else if (method === "execCommandApproval") {
-      send({ id: message.id, result: { decision: approved ? "approved" : { denied: { rejection: "Denied in All Code" } } } })
+      send({ id: message.id, result: { decision: approved ? "approved" : { denied: { rejection: "Denied in AllCode" } } } })
     } else if (method === "applyPatchApproval") {
-      send({ id: message.id, result: { decision: approved ? "approved" : { denied: { rejection: "Denied in All Code" } } } })
+      send({ id: message.id, result: { decision: approved ? "approved" : { denied: { rejection: "Denied in AllCode" } } } })
     } else {
       send({ id: message.id, result: { decision: approved ? "accept" : "decline" } })
     }
@@ -124,7 +124,7 @@ export async function runCodexWithApprovals(
 
   try {
     await rpc("initialize", {
-      clientInfo: { name: "allcode", title: "All Code", version: "0.2.0" },
+      clientInfo: { name: "allcode", title: "AllCode", version: "0.2.0" },
       capabilities: { experimentalApi: true },
     })
     send({ method: "initialized" })

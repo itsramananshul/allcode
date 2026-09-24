@@ -89,7 +89,7 @@ export async function startMcpServer(): Promise<void> {
   const approvalToken = process.env.ALL_CODE_APPROVAL_TOKEN
   if (Number.isInteger(approvalPort) && approvalPort > 0 && approvalToken) {
     server.registerTool("approval_prompt", {
-      description: "Ask the All Code user to approve or deny a Claude Code tool call. Never approve automatically.",
+      description: "Ask the AllCode user to approve or deny a Claude Code tool call. Never approve automatically.",
       inputSchema: {
         tool_name: z.string(),
         input: z.object({}).passthrough(),
@@ -108,7 +108,7 @@ export async function startMcpServer(): Promise<void> {
       return {
         content: [{ type: "text" as const, text: JSON.stringify(approved
           ? { behavior: "allow", updatedInput: input }
-          : { behavior: "deny", message: "Denied by the All Code user or the approval prompt was unavailable" }) }],
+          : { behavior: "deny", message: "Denied by the AllCode user or the approval prompt was unavailable" }) }],
       }
     })
   }

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/allcode-mascot.png" alt="All Code" width="220">
+  <img src="assets/allcode-mascot.png" alt="AllCode" width="220">
 </p>
 
-<h1 align="center">All Code</h1>
+<h1 align="center">AllCode</h1>
 
 <p align="center">Claude Code, OpenCode, Codex, Hermes, and more installed coding agents in one terminal.</p>
 
@@ -12,13 +12,13 @@
   <img src="https://img.shields.io/badge/node-%3E%3D22-lightgrey?style=flat-square" alt="Node.js 22 or newer">
 </p>
 
-All Code keeps one conversation while you move between coding agents. Start a task in OpenCode, switch to Claude Code, send a review to Codex, and continue without rebuilding the context by hand.
+AllCode keeps one conversation while you move between coding agents. Start a task in OpenCode, switch to Claude Code, send a review to Codex, and continue without rebuilding the context by hand.
 
 Each agent runs through its installed CLI. The models, account, tools, configuration, and permissions attached to that CLI stay available.
 
 ## Install
 
-All Code requires Node.js 22 or newer and at least one supported agent:
+AllCode requires Node.js 22 or newer and at least one supported agent:
 
 - [Claude Code](https://github.com/anthropics/claude-code)
 - [OpenCode](https://github.com/anomalyco/opencode)
@@ -43,7 +43,7 @@ allcode
 
 ## Use
 
-Type a request as usual. All Code sends it to the active agent.
+Type a request as usual. AllCode sends it to the active agent.
 
 ```text
 › find the cause of the failing authentication test
@@ -51,7 +51,7 @@ Type a request as usual. All Code sends it to the active agent.
 
 Type `/` to open the command palette above the input. The list filters as you type; use the arrow keys to browse, Enter to run the highlighted command, Tab to complete it in the input, and Escape to close it. The input stays at the bottom of the screen while you work.
 
-![All Code command palette](docs/images/command-palette.svg)
+![AllCode command palette](docs/images/command-palette.svg)
 
 Change agents without leaving the session:
 
@@ -65,9 +65,9 @@ Change agents without leaving the session:
 
 `/agent` opens the same searchable, arrow-key picker as `/model`; a name after the command switches directly. Your submitted prompts are highlighted without a `You` prefix, and replies carry the active agent's name.
 
-To add another installed CLI, type `/add` and choose Agent. All Code lists coding-agent commands found on your PATH; select one to have your current agent write an adapter for review. If the scan misses it, enter the command name or use advanced manual setup. ACP and one-shot registration are also available. Custom adapters and registrations live in `~/.allcode`, outside the package, so an All Code update does not replace them. A CLI can expose only capabilities its own interface provides. See [Adding agents and skills](docs/agents-and-models.md#adding-agents-and-skills).
+To add another installed CLI, type `/add` and choose Agent. AllCode lists coding-agent commands found on your PATH; select one to have your current agent write an adapter for review. If the scan misses it, enter the command name or use advanced manual setup. ACP and one-shot registration are also available. Custom adapters and registrations live in `~/.allcode`, outside the package, so an AllCode update does not replace them. A CLI can expose only capabilities its own interface provides. See [Adding agents and skills](docs/agents-and-models.md#adding-agents-and-skills).
 
-![All Code agent picker preview](docs/images/agent-picker.svg)
+![AllCode agent picker preview](docs/images/agent-picker.svg)
 
 Choose a model from the active agent:
 
@@ -78,23 +78,23 @@ Choose a model from the active agent:
 
 The agent and model pickers are searchable and keyboard-driven. `/model` browses the active agent's models; `/models` browses all discovered models and switches agents when you select one. Use the arrow keys and Enter—you do not need to type a model ID.
 
-![All Code model picker preview](docs/images/model-picker.svg)
+![AllCode model picker preview](docs/images/model-picker.svg)
 
-`/effort` lists the reasoning levels available for the selected model. `/mode` opens that agent's permission modes. The choices differ by agent; [the command reference](docs/commands.md#slash-commands) lists them. In modes that ask, All Code displays the proposed action and lets you allow it once or deny it. The default choice is Deny. Use the arrow keys or Page Up/Down to inspect a long request, Tab to switch the choice, and Enter to confirm. `/status` shows the current effort and mode.
+`/effort` lists the reasoning levels available for the selected model. `/mode` opens that agent's permission modes. The choices differ by agent; [the command reference](docs/commands.md#slash-commands) lists them. In modes that ask, AllCode displays the proposed action and lets you allow it once or deny it. The default choice is Deny. Use the arrow keys or Page Up/Down to inspect a long request, Tab to switch the choice, and Enter to confirm. `/status` shows the current effort and mode.
 
-![All Code approval prompt preview](docs/images/approval-prompt.svg)
+![AllCode approval prompt preview](docs/images/approval-prompt.svg)
 
-While an agent runs, a rotating status word shows the elapsed time. In Windows Terminal, the header displays the full All Code mascot image.
+While an agent runs, a rotating status word shows the elapsed time. In Windows Terminal, the header displays the full AllCode mascot image.
 
-![All Code working state](docs/images/working-state.svg)
+![AllCode working state](docs/images/working-state.svg)
 
-List models from OpenCode, Codex, and Hermes alongside All Code's Claude aliases:
+List models from OpenCode, Codex, and Hermes alongside AllCode's Claude aliases:
 
 ```bash
 allcode models
 ```
 
-All Code remembers the selected agent, one model per agent, native session IDs, and the shared conversation in `.allcode/session.json`.
+AllCode remembers the selected agent, one model per agent, native session IDs, and the shared conversation in `.allcode/session.json`.
 
 ## Agents
 
@@ -111,7 +111,7 @@ Check the local installation:
 allcode agents
 ```
 
-All Code also gives the active agent an MCP broker. It can delegate a task to another installed agent, wait for the result, and incorporate that result into the current job. Hermes uses its ACP interface for shared sessions, model selection, and interactive approvals; its existing CLI authentication remains in place.
+AllCode also gives the active agent an MCP broker. It can delegate a task to another installed agent, wait for the result, and incorporate that result into the current job. Hermes uses its ACP interface for shared sessions, model selection, and interactive approvals; its existing CLI authentication remains in place.
 
 ## Commands
 
@@ -128,7 +128,7 @@ All Code also gives the active agent an MCP broker. It can delegate a task to an
 | `/status` | Show the current route and session |
 | `/clear` | Clear the workspace transcript |
 | `/help` | Show commands |
-| `/exit` | Exit All Code |
+| `/exit` | Exit AllCode |
 
 Shell commands and configuration are covered in the [command reference](docs/commands.md).
 

@@ -31,7 +31,7 @@ export const commandItems: CommandItem[] = [
   { command: "/status", usage: "/status", description: "Show the active route and session" },
   { command: "/clear", usage: "/clear", description: "Clear the workspace transcript" },
   { command: "/help", usage: "/help", description: "Show the command reference" },
-  { command: "/exit", usage: "/exit", description: "Exit All Code" },
+  { command: "/exit", usage: "/exit", description: "Exit AllCode" },
   { command: "/provider", usage: "/provider [name]", description: "Alias for /agent" },
   { command: "/quit", usage: "/quit", description: "Alias for /exit" },
 ]

@@ -107,7 +107,7 @@ async function main(): Promise<void> {
         prompt.close()
         if (!/^y(?:es)?$/i.test(answer.trim())) { console.log("Cancelled."); return }
         const saved = installPluginDraft(draft.directory)
-        console.log(`Registered ${saved.label}. Use /agent ${saved.name} in All Code.`)
+        console.log(`Registered ${saved.label}. Use /agent ${saved.name} in AllCode.`)
         return
       }
       const name = args.shift()
@@ -119,7 +119,7 @@ async function main(): Promise<void> {
       const skillsDirs = takeOptions(args, "--skill-dir").map((path) => resolve(path))
       if (!name || !commandPath || (protocol !== "acp" && protocol !== "oneshot") || args.length) usage()
       const agent = registerAgent({ name, label: label!, protocol, command: resolveExecutable(commandPath), args: launchArgs, models, skillsDirs })
-      console.log(`Registered ${agent.label} (${agent.protocol}). Use /agent ${agent.name} in All Code.`)
+      console.log(`Registered ${agent.label} (${agent.protocol}). Use /agent ${agent.name} in AllCode.`)
       return
     }
     if (kind === "skill") {

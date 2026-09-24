@@ -95,7 +95,7 @@ export class SharedSession {
       return `${speaker}: ${message.content}`
     }).join("\n\n")
     const bounded = transcript.slice(-48_000)
-    return `[All Code shared context]\nThe following conversation happened in this workspace while another coding agent may have been active. Continue from it without repeating completed work.\n\n${bounded}\n\n[Current request]\n${prompt}`
+    return `[AllCode shared context]\nThe following conversation happened in this workspace while another coding agent may have been active. Continue from it without repeating completed work.\n\n${bounded}\n\n[Current request]\n${prompt}`
   }
 
   recordTurn(agent: AgentName, prompt: string, response: string): void {
@@ -107,7 +107,7 @@ export class SharedSession {
   }
 
   recordFailure(agent: AgentName, prompt: string, error: string): void {
-    this.recordTurn(agent, prompt, `[All Code error from ${agent}] ${error}`)
+    this.recordTurn(agent, prompt, `[AllCode error from ${agent}] ${error}`)
   }
 
   summary(): { messages: number; sessions: Partial<Record<AgentName, string>>; path: string } {

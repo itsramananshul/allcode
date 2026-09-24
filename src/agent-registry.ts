@@ -24,7 +24,7 @@ export function registeredAgents(): RegisteredAgent[] {
   const path = registryPath()
   if (!existsSync(path)) return []
   const parsed = JSON.parse(readFileSync(path, "utf8")) as unknown
-  if (!Array.isArray(parsed)) throw new Error(`Invalid All Code agent registry: ${path}`)
+  if (!Array.isArray(parsed)) throw new Error(`Invalid AllCode agent registry: ${path}`)
   return parsed.map((agent) => validateAgent(agent, false))
 }
 

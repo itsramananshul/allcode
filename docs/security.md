@@ -1,6 +1,6 @@
 # Security
 
-All Code starts coding agents with access to the current workspace. Review the permissions configured in each agent before using it on sensitive repositories.
+AllCode starts coding agents with access to the current workspace. Review the permissions configured in each agent before using it on sensitive repositories.
 
 ## Workspace boundary
 
@@ -15,18 +15,18 @@ Use `;` between roots on Windows and `:` on macOS or Linux.
 
 ## Agent permissions
 
-- Claude Code starts in `acceptEdits` mode. When it requests an approval, All Code presents the action and waits for your decision.
-- OpenCode starts with its native permission rules. Select `/mode` → Ask to review its pending permissions inside All Code. Explicit deny entries in `OPENCODE_CONFIG_CONTENT` are preserved when All Code adds the Ask rule.
+- Claude Code starts in `acceptEdits` mode. When it requests an approval, AllCode presents the action and waits for your decision.
+- OpenCode starts with its native permission rules. Select `/mode` → Ask to review its pending permissions inside AllCode. Explicit deny entries in `OPENCODE_CONFIG_CONTENT` are preserved when AllCode adds the Ask rule.
 - Codex starts with the `workspace-write` sandbox and an on-request approval policy in the interactive workspace.
-- Hermes starts in ACP `default` mode. Its ACP permission requests appear in All Code's approve/deny pane; without an interactive approver, All Code denies the request. Hermes's own configured provider and tool policies still apply.
+- Hermes starts in ACP `default` mode. Its ACP permission requests appear in AllCode's approve/deny pane; without an interactive approver, AllCode denies the request. Hermes's own configured provider and tool policies still apply.
 
 `/mode` also exposes each provider's auto-approve or bypass choices where available. They are opt-in and require a second confirmation. Bypass removes protections; use it only in an environment you trust. Managed provider policies can still refuse an action.
 
-All Code's approval prompt defaults to Deny. It displays the provider's tool input, command, or file change in a scrollable review window. Escape denies. If the approval transport fails, the request is denied rather than silently approved.
+AllCode's approval prompt defaults to Deny. It displays the provider's tool input, command, or file change in a scrollable review window. Escape denies. If the approval transport fails, the request is denied rather than silently approved.
 
-The one-shot `allcode run` command and background MCP-delegated tasks remain headless. They do not show All Code's approval prompt; actions requiring a human decision in those paths are subject to each adapter's non-interactive defaults.
+The one-shot `allcode run` command and background MCP-delegated tasks remain headless. They do not show AllCode's approval prompt; actions requiring a human decision in those paths are subject to each adapter's non-interactive defaults.
 
-Registered one-shot CLIs use their own permissions and have no All Code approval transport. Registration never downloads or authenticates an executable. Custom adapter drafts must be reviewed before installation: `agent.mjs` executes as your user and can access local files and credentials. All Code rejects symlinks and existing adapter names and does not run draft code during inspection. Skill installation is opt-in: All Code previews the destinations, rejects symlinks, and leaves existing skill folders untouched. Review third-party `SKILL.md` instructions and bundled scripts before allowing an agent to use them.
+Registered one-shot CLIs use their own permissions and have no AllCode approval transport. Registration never downloads or authenticates an executable. Custom adapter drafts must be reviewed before installation: `agent.mjs` executes as your user and can access local files and credentials. AllCode rejects symlinks and existing adapter names and does not run draft code during inspection. Skill installation is opt-in: AllCode previews the destinations, rejects symlinks, and leaves existing skill folders untouched. Review third-party `SKILL.md` instructions and bundled scripts before allowing an agent to use them.
 
 ## Credentials
 
@@ -38,7 +38,7 @@ Nested agent calls stop at `ALL_CODE_MAX_DEPTH`, which defaults to `3`. The dept
 
 ## Process execution
 
-All Code uses direct process spawning. Model IDs and session IDs are validated before they become command arguments. Captured output is limited to eight MiB per process.
+AllCode uses direct process spawning. Model IDs and session IDs are validated before they become command arguments. Captured output is limited to eight MiB per process.
 
 ## Vulnerability reports
 

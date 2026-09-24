@@ -124,7 +124,7 @@ async function discoverCodexModels(): Promise<ModelEntry[]> {
   }, 12_000)
   try {
     await request(1, "initialize", {
-      clientInfo: { name: "allcode", title: "All Code", version: "0.2.0" },
+      clientInfo: { name: "allcode", title: "AllCode", version: "0.2.0" },
       capabilities: { experimentalApi: true },
     })
     child.stdin.write(`${JSON.stringify({ method: "initialized" })}\n`)

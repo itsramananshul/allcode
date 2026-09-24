@@ -5,7 +5,7 @@ import { commandItems, filterCommandItems, filterPickerItems, pickItem, promptAp
 import { WorkspaceScreen } from "./workspace-screen.js"
 
 describe("command palette", () => {
-  it("opens with every All Code command", () => {
+  it("opens with every AllCode command", () => {
     expect(filterCommandItems("/")).toEqual(commandItems)
   })
 

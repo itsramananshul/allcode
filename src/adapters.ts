@@ -114,7 +114,7 @@ export class OpenCodeAdapter extends BaseAdapter {
       try {
         existing = JSON.parse(process.env.OPENCODE_CONFIG_CONTENT) as typeof existing
       } catch {
-        throw new Error("OPENCODE_CONFIG_CONTENT must contain valid JSON before All Code can add its MCP broker")
+        throw new Error("OPENCODE_CONFIG_CONTENT must contain valid JSON before AllCode can add its MCP broker")
       }
     }
     const allCodeMcp = {
