@@ -2,6 +2,9 @@ import { execFile, spawn } from "node:child_process"
 import { createInterface } from "node:readline"
 import { resolveExecutable } from "./executable.js"
 import { HermesAcpRunner } from "./hermes-acp-runner.js"
+import { findRegisteredAgent, listAgentNames } from "./agent-registry.js"
+import { getAdapter } from "./adapters.js"
+import { pluginEfforts, pluginModels } from "./plugin-agent.js"
 import type { AgentName } from "./types.js"
 
 export interface ModelEntry {
@@ -146,11 +149,24 @@ function claudeModels(): ModelEntry[] {
 
 export async function discoverModels(agent: AgentName): Promise<ModelCatalog> {
   try {
-    if (agent === "hermes") {
-      const runner = new HermesAcpRunner()
+    const registered = findRegisteredAgent(agent)
+    if (registered?.protocol === "plugin") {
+      const models = await pluginModels(agent, process.cwd())
+      return { agent, models: [{ agent, id: "default", label: `${registered.label} default`, isDefault: true },
+        ...models.filter((model) => typeof model.id === "string").map((model) => ({ agent, id: model.id,
+          label: model.label ?? model.id, description: model.description, efforts: model.efforts }))] }
+    }
+    if (registered?.protocol === "oneshot") {
+      return { agent, models: [{ agent, id: "default", label: "CLI default", isDefault: true },
+        ...registered.models.map((id) => ({ agent, id, label: id }))] }
+    }
+    if (agent === "hermes" || registered?.protocol === "acp") {
+      const runner = registered
+        ? new HermesAcpRunner((request) => getAdapter(agent).buildInvocation(request, registered.command), agent)
+        : new HermesAcpRunner()
       try {
         const state = await runner.listModels({ agent, cwd: process.cwd(), prompt: "" })
-        return { agent, models: [{ agent, id: "default", label: "Hermes configured default", isDefault: true },
+        return { agent, models: [{ agent, id: "default", label: `${registered?.label ?? "Hermes"} configured default`, isDefault: true },
           ...state.availableModels.flatMap((entry) => {
           if (typeof entry.modelId !== "string") return []
           return [{ agent, id: entry.modelId, label: typeof entry.name === "string" ? entry.name : entry.modelId,
@@ -171,11 +187,12 @@ export async function discoverModels(agent: AgentName): Promise<ModelCatalog> {
 }
 
 export async function discoverAllModels(): Promise<ModelCatalog[]> {
-  return await Promise.all((["claude", "opencode", "codex", "hermes"] as const).map(discoverModels))
+  return await Promise.all(listAgentNames().map(discoverModels))
 }
 
 export async function discoverEfforts(agent: AgentName, model: string | undefined): Promise<string[]> {
-  if (agent === "hermes") return ["default"]
+  if (findRegisteredAgent(agent)?.protocol === "plugin") return await pluginEfforts(agent, process.cwd(), model)
+  if (agent === "hermes" || findRegisteredAgent(agent)) return ["default"]
   if (agent === "claude") return ["default", "low", "medium", "high", "xhigh", "max"]
   if (agent === "codex") {
     const catalog = await discoverModels("codex")

@@ -55,10 +55,10 @@ export class HermesAcpRunner {
   private events = 0
   private approvalHandler?: ApprovalHandler
 
-  constructor(private readonly makeInvocation: InvocationFactory = defaultInvocation) {}
+  constructor(private readonly makeInvocation: InvocationFactory = defaultInvocation, private readonly agentName = "hermes") {}
 
   async prepare(request: RunRequest): Promise<void> {
-    if (request.agent !== "hermes") throw new Error("HermesAcpRunner only accepts Hermes requests")
+    if (request.agent !== this.agentName) throw new Error(`ACP runner expected ${this.agentName}`)
     if (this.collecting) throw new Error("A Hermes turn is already running")
     if (!this.child || this.cwd !== request.cwd || (request.sessionId && this.sessionId !== request.sessionId)) {
       await this.close()
@@ -101,7 +101,7 @@ export class HermesAcpRunner {
         prompt: [{ type: "text", text: request.prompt }],
       }, request.timeoutMs ?? 30 * 60 * 1000)
       return {
-        agent: "hermes",
+        agent: this.agentName,
         sessionId: this.sessionId,
         finalText: this.chunks.join("").trim(),
         eventCount: this.events,

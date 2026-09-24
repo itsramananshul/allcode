@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync } from "node:fs"
 import { dirname, isAbsolute, join, resolve } from "node:path"
+import { findRegisteredAgent } from "./agent-registry.js"
 
 const overrides: Record<string, string> = {
   claude: "ALL_CODE_CLAUDE_COMMAND",
@@ -19,6 +20,11 @@ function executableFromNpmShim(shim: string): string | undefined {
 }
 
 export function resolveExecutable(command: string): string {
+  const registered = findRegisteredAgent(command)
+  if (registered) {
+    if (!existsSync(registered.command)) throw new Error(`Registered agent ${command} points to a missing executable: ${registered.command}`)
+    return registered.command
+  }
   const overrideName = overrides[command]
   const override = overrideName ? process.env[overrideName] : undefined
   if (override) {

@@ -2,7 +2,8 @@ import * as pty from "node-pty"
 import { fileURLToPath } from "node:url"
 import { resolve } from "node:path"
 import { resolveExecutable } from "./executable.js"
-import { agentNames, type AgentName } from "./types.js"
+import type { AgentName } from "./types.js"
+import { isKnownAgent } from "./agent-registry.js"
 
 export interface InterceptResult {
   forward: string
@@ -270,5 +271,5 @@ export async function startNativeWorkspace(initialAgent: AgentName, cwdInput: st
 }
 
 export function isAgentName(value: string | undefined): value is AgentName {
-  return Boolean(value && agentNames.includes(value as AgentName))
+  return isKnownAgent(value)
 }

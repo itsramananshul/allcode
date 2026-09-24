@@ -49,6 +49,7 @@ describe("fullscreen command palette", () => {
     input.emit("keypress", "/", { name: "slash" })
     expect(writes.at(-1)?.match(/\/agent \[name\]/g)).toHaveLength(1)
     input.emit("keypress", undefined, { name: "down" })
+    input.emit("keypress", undefined, { name: "down" })
     input.emit("keypress", undefined, { name: "tab" })
     input.emit("keypress", undefined, { name: "return" })
     expect(await result).toBe("/model")

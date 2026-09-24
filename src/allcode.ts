@@ -1,4 +1,7 @@
 import { stdin as input, stdout as output } from "node:process"
+import { existsSync, mkdirSync, readFileSync } from "node:fs"
+import { join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 import { emitKeypressEvents } from "node:readline"
 import { discoverAllModels, discoverEfforts, discoverModels, type ModelEntry } from "./models.js"
 import { runAgent } from "./runner.js"
@@ -6,8 +9,14 @@ import { ClaudeStreamRunner } from "./claude-stream-runner.js"
 import { HermesAcpRunner } from "./hermes-acp-runner.js"
 import { SharedSession } from "./session.js"
 import { pickItem, promptApproval, readCommandLine, type PickerItem } from "./terminal-ui.js"
-import { agentNames, type AgentName } from "./types.js"
+import type { AgentName } from "./types.js"
 import { WorkspaceScreen } from "./workspace-screen.js"
+import { findRegisteredAgent, isKnownAgent, registerAgent, registeredAgents } from "./agent-registry.js"
+import { resolveExecutable } from "./executable.js"
+import { installPreparedSkill, prepareSkill } from "./skill-installer.js"
+import { pluginModes } from "./plugin-agent.js"
+import { inspectPluginDraft, installPluginDraft } from "./plugin-installer.js"
+import { discoverCommandByName, discoverInstalledAgents, type InstalledAgentCandidate } from "./agent-discovery.js"
 
 const gray = "\x1b[90m"
 const reset = "\x1b[0m"
@@ -17,15 +26,15 @@ const workingWords = [
 ]
 
 function agentLabel(agent: AgentName): string {
-  return agent === "claude" ? "Claude Code" : agent === "opencode" ? "OpenCode" : agent === "codex" ? "Codex" : "Hermes"
+  return agent === "claude" ? "Claude Code" : agent === "opencode" ? "OpenCode" : agent === "codex" ? "Codex" : agent === "hermes" ? "Hermes" : findRegisteredAgent(agent)?.label ?? agent
 }
 
 function defaultPermissionMode(agent: AgentName): string {
-  return agent === "claude" ? "acceptEdits" : agent === "opencode" ? "native" : agent === "codex" ? "workspace-write" : "default"
+  return agent === "claude" ? "acceptEdits" : agent === "opencode" ? "native" : agent === "codex" ? "workspace-write" : agent === "hermes" || ["acp", "plugin"].includes(findRegisteredAgent(agent)?.protocol ?? "") ? "default" : "native"
 }
 
 function showHelp(screen: WorkspaceScreen): void {
-  screen.append("Commands\n/agent [name]   Choose Claude Code, OpenCode, Codex, or Hermes\n/model [id]     Select a model for the active agent\n/models         Select a model from any installed agent\n/effort         Set the active model's reasoning effort\n/mode           Set the active agent's permission mode\n/status         Show the active route and session\n/clear          Clear the workspace\n/exit           Exit All Code\n")
+  screen.append("Commands\n/agent [name]   Choose a coding agent\n/add            Register an agent or install a skill\n/model [id]     Select a model for the active agent\n/models         Select a model from any installed agent\n/effort         Set the active model's reasoning effort\n/mode           Set the active agent's permission mode\n/status         Show the active route and session\n/clear          Clear the workspace\n/exit           Exit All Code\n")
 }
 
 async function chooseAgent(current: AgentName, screen: WorkspaceScreen): Promise<AgentName> {
@@ -34,6 +43,7 @@ async function chooseAgent(current: AgentName, screen: WorkspaceScreen): Promise
     { value: "opencode", label: "OpenCode", description: "Open provider catalog" },
     { value: "codex", label: "Codex", description: "OpenAI CLI" },
     { value: "hermes", label: "Hermes", description: "Hermes Agent via ACP" },
+    ...registeredAgents().map((agent) => ({ value: agent.name, label: agent.label, description: agent.protocol === "acp" ? "ACP agent" : agent.protocol === "plugin" ? `Custom adapter${agent.limitations?.length ? " · limited" : ""}` : "One-shot CLI · no native sessions or All Code approvals" })),
   ]
   return await pickItem("Choose an agent", items, { current }, input, output, screen) ?? current
 }
@@ -137,8 +147,14 @@ const hermesModes: PickerItem<string>[] = [
   { value: "dont_ask", label: "Don't ask for edits", description: "Auto-allow edits except sensitive paths" },
 ]
 
-async function chooseMode(agent: AgentName, current: string | undefined, screen: WorkspaceScreen): Promise<string | undefined> {
-  const choices = agent === "claude" ? claudeModes : agent === "opencode" ? opencodeModes : agent === "codex" ? codexModes : hermesModes
+async function chooseMode(agent: AgentName, current: string | undefined, screen: WorkspaceScreen, cwd: string): Promise<string | undefined> {
+  const registered = findRegisteredAgent(agent)
+  const choices = agent === "claude" ? claudeModes : agent === "opencode" ? opencodeModes : agent === "codex" ? codexModes
+    : agent === "hermes" ? hermesModes : registered?.protocol === "plugin"
+      ? (await pluginModes(agent, cwd)).map((mode) => ({ value: mode.id, label: mode.label, description: mode.description }))
+      : registered?.protocol === "acp"
+      ? [{ value: "default", label: "Agent default", description: "ACP requests appear in All Code when the agent sends them" }]
+      : [{ value: "native", label: "CLI default", description: "One-shot CLIs handle permissions outside All Code" }]
   const defaultMode = defaultPermissionMode(agent)
   const selected = await pickItem(`${agentLabel(agent)} permission mode`, choices, { current: current ?? defaultMode }, input, output, screen)
   if (["bypassPermissions", "bypass", "auto", "accept_edits", "dont_ask"].includes(selected ?? "")) {
@@ -149,6 +165,119 @@ async function chooseMode(agent: AgentName, current: string | undefined, screen:
     return confirm === "yes" ? selected : current
   }
   return selected ?? current
+}
+
+async function askField(label: string, screen: WorkspaceScreen): Promise<string> {
+  screen.append(label)
+  return (await readCommandLine([], input, output, screen)).trim()
+}
+
+async function addInteractively(kind: string | undefined, screen: WorkspaceScreen, currentAgent: AgentName, cwd: string,
+  model: string | undefined, effort: string | undefined, permissionMode: string | undefined): Promise<void> {
+  const selected = kind === "agent" || kind === "skill" ? kind : await pickItem("Add to All Code", [
+    { value: "agent", label: "Agent", description: "Build an adapter or register an installed CLI" },
+    { value: "skill", label: "Skill", description: "Install a SKILL.md folder for supported agents" },
+  ], {}, input, output, screen)
+  if (!selected) return
+  if (selected === "agent") {
+    screen.setWorking("Looking for installed agent commands…")
+    let candidates: InstalledAgentCandidate[]
+    try { candidates = await discoverInstalledAgents() }
+    finally { screen.setWorking("") }
+    const choice = await pickItem("Add an installed agent", [
+      ...candidates.map((candidate) => ({ value: candidate.name, label: candidate.label,
+        description: isKnownAgent(candidate.name) ? "Already available in All Code" : "Detected on PATH · adapter needed" })),
+      { value: "search", label: "Find by command name", description: "Type the command you use to launch another agent" },
+      { value: "manual", label: "Advanced manual setup", description: "Enter ACP or one-shot details yourself" },
+    ], { limit: 12 }, input, output, screen)
+    if (!choice) return
+    let detected = candidates.find((candidate) => candidate.name === choice)
+    if (choice === "search") {
+      const commandName = await askField("Agent command name (for example gemini):", screen)
+      screen.setWorking("Looking for that command…")
+      try { detected = await discoverCommandByName(commandName) }
+      finally { screen.setWorking("") }
+      if (!detected) { screen.append(`Couldn't find ${commandName} on PATH. Check that its CLI is installed and available in this terminal.`); return }
+    }
+    if (detected && isKnownAgent(detected.name)) {
+      screen.append(`${agentLabel(detected.name)} is already available. Use /agent to select it.`)
+      return
+    }
+    const protocol = detected ? "plugin" : await pickItem("Agent interface", [
+      { value: "plugin", label: "Build adapter with current agent", description: "Inspect an installed CLI and write an update-safe plugin" },
+      { value: "acp", label: "ACP", description: "Models, sessions, and approval requests" },
+      { value: "oneshot", label: "One-shot CLI", description: "Basic prompts only; unavailable features are not shown as supported" },
+    ], {}, input, output, screen)
+    if (!protocol) return
+    const name = detected?.name ?? (await askField("Agent ID (lowercase slug):", screen)).toLowerCase()
+    const label = detected?.label ?? await askField("Display name:", screen)
+    const command = detected?.command ?? await askField("Installed executable path or command:", screen)
+    if (protocol === "plugin") {
+      const executable = resolveExecutable(command)
+      if (!/^[a-z][a-z0-9-]{1,39}$/.test(name)) throw new Error("Agent ID must be a lowercase slug")
+      const draft = resolve(cwd, ".allcode", "adapter-drafts", name)
+      if (existsSync(draft)) throw new Error(`Draft already exists; review or move it first: ${draft}`)
+      mkdirSync(draft, { recursive: true })
+      const skillFile = fileURLToPath(new URL("../skills/allcode-agent-adapter/SKILL.md", import.meta.url))
+      const instructions = readFileSync(skillFile, "utf8")
+      screen.append(`Asking ${agentLabel(currentAgent)} to build an adapter at ${draft}. This may take a while.`)
+      const animation = startWorkingAnimation(currentAgent, screen)
+      try {
+        const result = await runAgent({ agent: currentAgent, cwd,
+          model: model === "default" && currentAgent !== "hermes" && findRegisteredAgent(currentAgent)?.protocol !== "acp" ? undefined : model,
+          effort, permissionMode,
+          prompt: `${instructions}\n\nTask: Integrate the already-installed CLI ${executable} as agent ${name} (${label}) in All Code. Launch arguments detected: ${JSON.stringify(detected?.args ?? [])}. Write only inside ${draft}. Do not register or install the result. Inspect the CLI's real capabilities and test what you can. Report gaps honestly.` },
+        undefined, async ({ toolName, input: toolInput }) => {
+          animation.pause()
+          try { return await askApproval(toolName, toolInput, screen) }
+          finally { animation.resume() }
+        })
+        screen.appendAgent(agentLabel(currentAgent), result.finalText.trim(), animation.stop())
+      } catch (error) { animation.stop(); throw error }
+      const prepared = inspectPluginDraft(draft)
+      if (prepared.manifest.name !== name || prepared.manifest.command !== executable) throw new Error("Generated adapter identity or executable differs from the requested one")
+      if (detected && JSON.stringify(prepared.manifest.args.slice(0, detected.args.length)) !== JSON.stringify(detected.args)) throw new Error("Generated adapter dropped the detected launch arguments")
+      screen.append(`Review ${draft} before installing.\nLimitations: ${prepared.manifest.limitations.join("; ") || "none declared; verify capabilities yourself"}\nIts JavaScript will run with your user permissions. No existing agent configuration will be changed.`)
+      const confirm = await pickItem("Install this adapter?", [
+        { value: "no", label: "No — keep the draft for review" }, { value: "yes", label: "Yes — install and register" },
+      ], { current: "no" }, input, output, screen)
+      if (confirm === "yes") {
+        const saved = installPluginDraft(draft)
+        screen.append(`Registered ${saved.label}. Open /agent to select it.`)
+      }
+      return
+    }
+    const argsText = await askField("Launch arguments as JSON array (for example [\"acp\"]):", screen)
+    const args = JSON.parse(argsText || "[]") as unknown
+    if (!Array.isArray(args) || args.some((value) => typeof value !== "string")) throw new Error("Launch arguments must be a JSON string array")
+    const modelsText = protocol === "oneshot" ? await askField("Model IDs, comma-separated (optional):", screen) : ""
+    const models = modelsText.split(",").map((value) => value.trim()).filter(Boolean)
+    const skillDirsText = await askField("Global SKILL.md directories as JSON array (optional, for example [\"/path/to/skills\"]):", screen)
+    const skillsDirs = JSON.parse(skillDirsText || "[]") as unknown
+    if (!Array.isArray(skillsDirs) || skillsDirs.some((value) => typeof value !== "string")) throw new Error("Skill directories must be a JSON string array")
+    screen.append(`${label} · ${protocol}\n${command} ${args.join(" ")}\n${protocol === "oneshot" ? "This CLI handles its own permissions; All Code cannot resume its native session." : "ACP approval requests can appear in All Code."}`)
+    const confirm = await pickItem("Register this agent?", [
+      { value: "no", label: "Cancel" }, { value: "yes", label: "Register" },
+    ], { current: "no" }, input, output, screen)
+    if (confirm !== "yes") return
+    const saved = registerAgent({ name, label, protocol, command: resolveExecutable(command), args, models, skillsDirs: skillsDirs.map((path) => resolve(path)) })
+    screen.append(`Registered ${saved.label}. Open /agent to select it.`)
+    return
+  }
+  const source = await askField("Skill folder, SKILL.md path, or GitHub repository URL (#subdirectory optional):", screen)
+  if (!source) return
+  screen.setWorking("Inspecting skill…")
+  const skill = prepareSkill(source)
+  screen.setWorking("")
+  try {
+    screen.append(`${skill.name} · ${skill.description}\n${skill.destinations.map((target) => `${target.agents.join(" + ")} → ${target.path}`).join("\n")}\nExisting skills with this name will be skipped.`)
+    const confirm = await pickItem("Install this skill? Review its source before trusting it.", [
+      { value: "no", label: "Cancel" }, { value: "yes", label: "Install" },
+    ], { current: "no" }, input, output, screen)
+    if (confirm !== "yes") return
+    const result = installPreparedSkill(skill)
+    screen.append(`Installed:\n${result.installed.join("\n") || "None"}\nSkipped:\n${result.skipped.join("\n") || "None"}`)
+  } finally { skill.cleanup() }
 }
 
 async function askApproval(toolName: string, toolInput: Record<string, unknown>, screen: WorkspaceScreen): Promise<boolean> {
@@ -205,27 +334,6 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
   try {
     screen.start()
     screen.setExecutionSettings(effort, permissionMode)
-    const prepareClaude = async (): Promise<void> => {
-      if (agent !== "claude") return
-      try {
-        await claude.prepare({
-          agent: "claude", cwd, prompt: "", model: model === "default" ? undefined : model,
-          effort, permissionMode, sessionId: shared.nativeSession("claude"),
-        })
-      } catch (error) {
-        screen.append(`Claude startup failed: ${error instanceof Error ? error.message : String(error)}`)
-      }
-    }
-    await prepareClaude()
-    const prepareHermes = async (): Promise<void> => {
-      if (agent !== "hermes") return
-      try {
-        await hermes.prepare({ agent, cwd, prompt: "", model, permissionMode, sessionId: shared.nativeSession("hermes") })
-      } catch (error) {
-        screen.append(`Hermes startup failed: ${error instanceof Error ? error.message : String(error)}`)
-      }
-    }
-    await prepareHermes()
     while (true) {
       const line = (await readCommandLine(history, input, output, screen)).trim()
       if (!line) continue
@@ -234,6 +342,11 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
 
       if (command === "/exit" || command === "/quit") break
       if (command === "/help") { showHelp(screen); continue }
+      if (command === "/add") {
+        try { await addInteractively(parts[0]?.toLowerCase(), screen, agent, cwd, model, effort, permissionMode) }
+        catch (error) { screen.setWorking(""); screen.append(`Add failed: ${error instanceof Error ? error.message : String(error)}`) }
+        continue
+      }
       if (command === "/clear") { screen.clear(); continue }
       if (command === "/status") {
         const state = shared.summary()
@@ -246,18 +359,14 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
           shared.setEffort(agent, effort)
           screen.setExecutionSettings(effort, permissionMode)
           screen.append(`Reasoning effort: ${effort ?? "provider default"}`)
-          await prepareClaude()
-          await prepareHermes()
         } catch (error) { screen.append(`Effort discovery failed: ${error instanceof Error ? error.message : String(error)}`) }
         continue
       }
       if (command === "/mode" || command === "/permissions") {
-        permissionMode = await chooseMode(agent, permissionMode, screen) ?? permissionMode
+        permissionMode = await chooseMode(agent, permissionMode, screen, cwd) ?? permissionMode
         shared.setPermissionMode(agent, permissionMode)
         screen.setExecutionSettings(effort, permissionMode)
         screen.append(`Permission mode: ${permissionMode ?? "native default"}`)
-        await prepareClaude()
-        await prepareHermes()
         continue
       }
       if (command === "/models") {
@@ -273,14 +382,12 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
           screen.setExecutionSettings(effort, permissionMode)
           screen.setRoute(agentLabel(agent), model)
           screen.append(`Active model: ${agentLabel(agent)} · ${model}`)
-          await prepareClaude()
-          await prepareHermes()
         }
         continue
       }
       if (command === "/agent" || command === "/provider") {
         const requested = parts[0]?.toLowerCase()
-        agent = requested && agentNames.includes(requested as AgentName)
+        agent = requested && isKnownAgent(requested)
           ? requested as AgentName
           : await chooseAgent(agent, screen)
         shared.activeAgent = agent
@@ -290,8 +397,6 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         screen.setExecutionSettings(effort, permissionMode)
         screen.setRoute(agentLabel(agent), model ?? "default model")
         screen.append(`Active agent: ${agentLabel(agent)}`)
-        await prepareClaude()
-        await prepareHermes()
         continue
       }
       if (command === "/model") {
@@ -302,8 +407,6 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         screen.setRoute(agentLabel(agent), model ?? "default model")
         screen.setExecutionSettings(effort, permissionMode)
         screen.append(`Active model: ${model ?? "default"}`)
-        await prepareClaude()
-        await prepareHermes()
         continue
       }
       const animation = startWorkingAnimation(agent, screen)
@@ -312,7 +415,7 @@ export async function startAllCode(cwd: string, initialAgent: AgentName = "openc
         const request = {
           agent,
           cwd,
-          model: model === "default" && agent !== "hermes" ? undefined : model,
+          model: model === "default" && agent !== "hermes" && findRegisteredAgent(agent)?.protocol !== "acp" ? undefined : model,
           effort,
           permissionMode,
           sessionId: shared.nativeSession(agent),

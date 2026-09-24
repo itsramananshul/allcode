@@ -1,6 +1,6 @@
 export const agentNames = ["claude", "opencode", "codex", "hermes"] as const
 
-export type AgentName = (typeof agentNames)[number]
+export type AgentName = (typeof agentNames)[number] | (string & {})
 
 export interface RunRequest {
   agent: AgentName

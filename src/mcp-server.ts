@@ -5,7 +5,8 @@ import { listAdapters } from "./adapters.js"
 import { executableStatus } from "./executable.js"
 import { validateWorkspace } from "./security.js"
 import { TaskManager } from "./task-manager.js"
-import { agentNames, type AgentName, type RunRequest, type TaskRecord } from "./types.js"
+import { isKnownAgent } from "./agent-registry.js"
+import type { AgentName, RunRequest, TaskRecord } from "./types.js"
 
 const manager = new TaskManager()
 
@@ -27,7 +28,7 @@ export async function startMcpServer(): Promise<void> {
   const server = new McpServer(
     { name: "allcode", version: "0.2.0" },
     {
-      instructions: "You are the selected lead agent. Keep ownership of the user's task, but choose Claude Code, OpenCode, Codex, or Hermes when another engine is better suited to a subtask. Use list_agents to inspect availability, start_task to delegate, and task_status to collect the result before integrating it. Each target performs work with its own native models and tools while retaining its own authentication and session state. Do not delegate back to the current host unless the user explicitly requests it.",
+      instructions: "You are the selected lead agent. Keep ownership of the user's task, but use another registered engine when it is better suited to a subtask. Use list_agents to inspect availability, start_task to delegate, and task_status to collect the result before integrating it. Capabilities vary by agent; one-shot CLIs may not have native sessions, model discovery, or approval callbacks. Do not delegate back to the current host unless the user explicitly requests it.",
     },
   )
 
@@ -46,7 +47,7 @@ export async function startMcpServer(): Promise<void> {
   server.registerTool("start_task", {
     description: "Start a coding task inside another agent engine. Returns immediately with a task ID; use task_status to read progress/result.",
     inputSchema: {
-      agent: z.enum(agentNames).describe("The engine that must actually execute the task"),
+      agent: z.string().refine(isKnownAgent, "Unknown agent").describe("The registered engine that must execute the task"),
       prompt: z.string().min(1).max(200_000),
       cwd: z.string().min(1).describe("Working directory, restricted to configured allowed roots"),
       model: z.string().optional().describe("Optional native model ID understood by the target engine"),

@@ -1,6 +1,7 @@
 import { extractFinalText, extractSessionId, parseJsonEvents } from "./parsers.js"
 import { delimiter } from "node:path"
 import { fileURLToPath } from "node:url"
+import { findRegisteredAgent, registeredAgents, type RegisteredAgent } from "./agent-registry.js"
 import type { AgentAdapter, AgentName, AgentResult, Invocation, ProcessResult, RunRequest } from "./types.js"
 
 const safeToken = /^[A-Za-z0-9._:/@~-]{1,240}$/
@@ -9,7 +10,7 @@ function validateOptionalToken(label: string, value: string | undefined): void {
   if (value && !safeToken.test(value)) throw new Error(`Invalid ${label}: ${value}`)
 }
 
-function childEnv(agent: AgentName, cwd: string): NodeJS.ProcessEnv {
+export function childEnv(agent: AgentName, cwd: string): NodeJS.ProcessEnv {
   const depth = Number.parseInt(process.env.ALL_CODE_DEPTH ?? "0", 10) || 0
   const maxDepth = Number.parseInt(process.env.ALL_CODE_MAX_DEPTH ?? "3", 10) || 3
   if (depth >= maxDepth) throw new Error(`Delegation depth ${depth} reached the configured maximum ${maxDepth}`)
@@ -174,6 +175,39 @@ export class HermesAdapter extends BaseAdapter {
   }
 }
 
+class RegisteredAdapter extends BaseAdapter {
+  readonly name: AgentName
+  readonly description: string
+
+  constructor(private readonly registration: RegisteredAgent) {
+    super()
+    this.name = registration.name
+    this.description = `${registration.label} through ${registration.protocol === "acp" ? "ACP" : "one-shot CLI"}`
+  }
+
+  buildInvocation(request: RunRequest): Invocation {
+    validateOptionalToken("model", request.model)
+    if (this.registration.protocol === "plugin") throw new Error("Plugin agents run through their registered module")
+    if (this.registration.protocol === "acp") {
+      return { command: this.registration.command, args: this.registration.args, cwd: request.cwd, env: childEnv(this.name, request.cwd) }
+    }
+    if (request.sessionId) throw new Error(`${this.name} is one-shot and does not support native session IDs`)
+    if (request.effort) throw new Error(`${this.name} does not expose effort controls`)
+    if (request.model && !this.registration.args.some((arg) => arg.includes("{model}"))) {
+      throw new Error(`${this.name} needs a {model} placeholder in its registered arguments`)
+    }
+    const hasPromptArgument = this.registration.args.some((arg) => arg.includes("{prompt}"))
+    const args = this.registration.args.map((arg) => arg.replaceAll("{prompt}", request.prompt).replaceAll("{model}", request.model ?? ""))
+    return { command: this.registration.command, args, stdin: hasPromptArgument ? undefined : request.prompt, cwd: request.cwd,
+      env: childEnv(this.name, request.cwd) }
+  }
+
+  parse(result: ProcessResult): AgentResult {
+    if (this.registration.protocol === "acp") throw new Error("ACP results must use the ACP runner")
+    return { ...result, agent: this.name, finalText: result.stdout.trim(), eventCount: 0 }
+  }
+}
+
 const adapters: Record<AgentName, AgentAdapter> = {
   claude: new ClaudeAdapter(),
   opencode: new OpenCodeAdapter(),
@@ -182,9 +216,12 @@ const adapters: Record<AgentName, AgentAdapter> = {
 }
 
 export function getAdapter(name: AgentName): AgentAdapter {
-  return adapters[name]
+  if (Object.hasOwn(adapters, name)) return adapters[name]!
+  const custom = findRegisteredAgent(name)
+  if (custom) return new RegisteredAdapter(custom)
+  throw new Error(`Unknown agent: ${name}`)
 }
 
 export function listAdapters(): AgentAdapter[] {
-  return Object.values(adapters)
+  return [...Object.values(adapters), ...registeredAgents().map((agent) => new RegisteredAdapter(agent))]
 }
