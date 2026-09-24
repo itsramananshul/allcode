@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible All Code problem
+description: Report a reproducible AllCode problem
 title: "[Bug]: "
 labels: [bug]
 body:
@@ -16,7 +16,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: All Code version or commit
+      label: AllCode version or commit
     validations:
       required: true
   - type: dropdown

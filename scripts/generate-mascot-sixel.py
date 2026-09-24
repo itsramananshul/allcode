@@ -1,7 +1,7 @@
 """Generate the small Windows Terminal image from the original mascot PNG.
 
 Run with `python scripts/generate-mascot-sixel.py` after installing Pillow.
-The generated SIXEL file is committed so All Code users need no image tools.
+The generated SIXEL file is committed so AllCode users need no image tools.
 """
 
 from pathlib import Path
