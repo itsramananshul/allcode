@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { delimiter, join } from "node:path"
 import { discoverCommandByName, discoverInstalledAgents } from "./agent-discovery.js"
@@ -11,14 +11,16 @@ describe("installed agent discovery", () => {
   it("finds executables without running them and ignores non-coding agents", async () => {
     const directory = mkdtempSync(join(tmpdir(), "allcode-discovery-"))
     temp.push(directory)
-    writeFileSync(join(directory, "gemini.exe"), "not a real executable")
-    writeFileSync(join(directory, "ssh-agent.exe"), "not a coding agent")
+    const extension = process.platform === "win32" ? ".exe" : ""
+    writeFileSync(join(directory, `gemini${extension}`), "not a real executable")
+    writeFileSync(join(directory, `ssh-agent${extension}`), "not a coding agent")
+    if (process.platform !== "win32") chmodSync(join(directory, "gemini"), 0o755)
     const found = await discoverInstalledAgents(directory)
     expect(found.map((candidate) => candidate.name)).toEqual(["gemini"])
-    expect(found[0]?.command).toBe(join(directory, "gemini.exe"))
+    expect(found[0]?.command).toBe(join(directory, `gemini${extension}`))
   })
 
-  it("resolves npm shims to their underlying executable", async () => {
+  it.skipIf(process.platform !== "win32")("resolves npm shims to their underlying executable", async () => {
     const directory = mkdtempSync(join(tmpdir(), "allcode-discovery-"))
     temp.push(directory)
     const target = join(directory, "node_modules", "sample-agent", "bin", "sample-agent.exe")

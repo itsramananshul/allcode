@@ -32,7 +32,7 @@ npm install
 npm link
 ```
 
-Alternatively, download `allcode-0.3.0.tgz` from the [v0.3.0 release](https://github.com/itsramananshul/allcode/releases/tag/v0.3.0) and install that package with `npm install -g ./allcode-0.3.0.tgz`.
+Alternatively, download `allcode-0.3.1.tgz` from the [v0.3.1 release](https://github.com/itsramananshul/allcode/releases/tag/v0.3.1) and install that package with `npm install -g ./allcode-0.3.1.tgz`.
 
 Run it from a project directory:
 

@@ -1,5 +1,5 @@
 import { readdir } from "node:fs/promises"
-import { existsSync, readFileSync } from "node:fs"
+import { accessSync, constants, existsSync, readFileSync } from "node:fs"
 import { basename, delimiter, dirname, isAbsolute, join } from "node:path"
 
 export interface InstalledAgentCandidate {
@@ -19,7 +19,9 @@ const labels: Record<string, string> = {
 const nonCodingAgents = new Set(["ssh-agent", "gpg-agent", "pageant", "winssh-agent"])
 
 function candidateName(file: string): string | undefined {
-  const match = file.toLowerCase().match(/^([a-z][a-z0-9_-]{1,39})\.(exe|cmd)$/)
+  const match = file.toLowerCase().match(process.platform === "win32"
+    ? /^([a-z][a-z0-9_-]{1,39})\.(exe|cmd)$/
+    : /^([a-z][a-z0-9_-]{1,39})$/)
   if (!match) return undefined
   const name = match[1]!.replaceAll("_", "-")
   if (name === "allcode" || name === "code" || name === "code-insiders" || nonCodingAgents.has(name)) return undefined
@@ -46,7 +48,7 @@ async function directoryEntries(directory: string): Promise<string[]> {
       readdir(directory, { withFileTypes: true }),
       new Promise<[]>((resolve) => { timer = setTimeout(() => resolve([]), 750) }),
     ])
-    return entries.filter((entry) => entry.isFile()).map((entry) => entry.name)
+    return entries.filter((entry) => entry.isFile() || entry.isSymbolicLink()).map((entry) => entry.name)
   } catch { return [] }
   finally { if (timer) clearTimeout(timer) }
 }
@@ -65,7 +67,9 @@ export async function discoverInstalledAgents(pathValue = process.env.PATH ?? pr
       if (!name || found.has(name)) continue
       const launcher = join(directory, file)
       const isExe = file.toLowerCase().endsWith(".exe")
-      const target = isExe ? { command: launcher, args: [] } : npmShimTarget(launcher)
+      const target = process.platform === "win32"
+        ? isExe ? { command: launcher, args: [] } : npmShimTarget(launcher)
+        : executableTarget(launcher)
       if (!target) continue
       found.set(name, { name, label: labels[name] ?? name.replaceAll("-", " "),
         command: target.command, args: target.args, launcher })
@@ -83,14 +87,21 @@ export async function discoverCommandByName(name: string, pathValue = process.en
   for (let index = 0; index < directories.length; index += 1) {
     const directory = directories[index]!
     const files = listings[index]!
-    for (const extension of [".exe", ".cmd"]) {
+    for (const extension of process.platform === "win32" ? [".exe", ".cmd"] : [""]) {
       const file = files.find((entry) => entry.toLowerCase() === `${name.toLowerCase()}${extension}`)
       if (!file) continue
       const launcher = join(directory, file)
-      const target = extension === ".exe" ? { command: launcher, args: [] } : npmShimTarget(launcher)
+      const target = process.platform === "win32"
+        ? extension === ".exe" ? { command: launcher, args: [] } : npmShimTarget(launcher)
+        : executableTarget(launcher)
       if (target) return { name: normalized, label: labels[normalized] ?? normalized.replaceAll("-", " "),
         command: target.command, args: target.args, launcher }
     }
   }
   return undefined
+}
+
+function executableTarget(path: string): { command: string; args: string[] } | undefined {
+  try { accessSync(path, constants.X_OK); return { command: path, args: [] } }
+  catch { return undefined }
 }

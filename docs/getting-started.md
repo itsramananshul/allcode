@@ -20,7 +20,7 @@ npm install
 npm link
 ```
 
-The [v0.3.0 release](https://github.com/itsramananshul/allcode/releases/tag/v0.3.0) also includes an installable npm tarball. Download it, then run `npm install -g ./allcode-0.3.0.tgz`. This installs the `allcode` command; each coding agent still needs its own installation and login.
+The [v0.3.1 release](https://github.com/itsramananshul/allcode/releases/tag/v0.3.1) also includes an installable npm tarball. Download it, then run `npm install -g ./allcode-0.3.1.tgz`. This installs the `allcode` command; each coding agent still needs its own installation and login.
 
 Confirm that All Code can find the agents:
 
