@@ -58,6 +58,8 @@ Enter a request at the prompt:
 › trace the request path for POST /api/login and explain the failure
 ```
 
+[Watch a real terminal session](demo/allcode-terminal-demo.mp4) showing a task continued after switching agents. Waiting time is shortened in the recording.
+
 Type `/` at an empty prompt to browse every AllCode command without leaving the workspace.
 
 ![AllCode command palette](images/command-palette.svg)
@@ -77,9 +79,7 @@ Switch agents at any point:
 
 Your submitted input appears on a highlighted line without a `You` prefix. Agent replies appear in a separate block labeled with the agent's name and elapsed time.
 
-While a task runs, a changing status word shows elapsed time and the active agent. The response appears beneath it when the task completes. Windows Terminal displays the full mascot image in the header.
-
-![AllCode working state](images/working-state.svg)
+Press Esc or Ctrl+C to interrupt a running task. Its interrupted reply is not added to the shared conversation.
 
 ## Select a model
 
@@ -103,7 +103,7 @@ Use `/models` to browse models from all installed agents. Select with the arrow 
 
 Use `/effort` to choose one of the selected model's reasoning levels. Use `/mode` to set that agent's permission mode. If the chosen mode asks and an action requires your decision, AllCode pauses and shows an approve/deny prompt. Deny is selected initially; press Tab to select Allow once, then Enter, or press `A` to allow immediately. Press `D` or Escape to deny. The permission mode and effort are shown by `/status` and saved per agent.
 
-To connect another installed coding CLI or add a shared `SKILL.md` skill, type `/add`. Choose Agent or Skill, then follow the prompts. The Agent picker scans for installed commands; choose one to generate an adapter draft, then inspect it before installing. If it isn't listed, search by command name or use advanced manual setup. ACP and one-shot routes remain available. [Agent and skill setup](agents-and-models.md#adding-agents-and-skills) explains the capabilities and install locations.
+To connect another installed coding CLI or add a shared `SKILL.md` skill, type `/add`. Choose Agent or Skill, then follow the prompts. The Agent picker scans for installed commands; choose one to generate an adapter draft, then inspect it before installing. If a draft already exists, AllCode asks the active agent to inspect and continue it. If the command isn't listed, search by name or use advanced manual setup. ACP and one-shot routes remain available. [Agent and skill setup](agents-and-models.md#adding-agents-and-skills) explains the capabilities and install locations.
 
 ![AllCode approval prompt preview](images/approval-prompt.svg)
 

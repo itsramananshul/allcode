@@ -3,7 +3,7 @@
 ## Start here
 
 - [Getting started](getting-started.md) — install AllCode and open the first workspace
-- [Terminal previews](getting-started.md#start-a-task) — see the command palette, agent and model pickers, approval prompt, and working state
+- [Getting started](getting-started.md#start-a-task) — watch a terminal session and learn the command palette, agent and model pickers, and approvals
 - [Command reference](commands.md) — terminal commands, slash commands, and environment variables
 - [Agents and models](agents-and-models.md) — agent switching, model discovery, and context handoff
 - [Adding agents and skills](agents-and-models.md#adding-agents-and-skills) — register installed CLIs and install reviewed skills
