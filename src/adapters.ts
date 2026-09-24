@@ -107,7 +107,7 @@ export class OpenCodeAdapter extends BaseAdapter {
     if (request.model) args.push("--model", request.model)
     if (request.effort) args.push("--variant", request.effort)
     if (request.sessionId) args.push("--session", request.sessionId)
-    args.push(request.prompt)
+    args.push("--", request.prompt)
     const nextEnv = childEnv(this.name, request.cwd)
     let existing: { mcp?: Record<string, unknown>; [key: string]: unknown } = {}
     if (process.env.OPENCODE_CONFIG_CONTENT) {

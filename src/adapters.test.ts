@@ -30,6 +30,14 @@ describe("agent adapters", () => {
     expect(invocation.args).toEqual(expect.arrayContaining(["--model", "opencode/big-pickle", "Fix the tests"]))
   })
 
+  it("separates prompts beginning with dashes from OpenCode options", () => {
+    const prompt = "---\nname: allcode-agent-adapter\n---\nBuild the adapter"
+    const invocation = new OpenCodeAdapter().buildInvocation(
+      { ...base, agent: "opencode", prompt }, "opencode.exe",
+    )
+    expect(invocation.args.slice(-2)).toEqual(["--", prompt])
+  })
+
   it("asks OpenCode for permissions without replacing configured denials", () => {
     const previous = process.env.OPENCODE_CONFIG_CONTENT
     process.env.OPENCODE_CONFIG_CONTENT = JSON.stringify({ permission: { "*": "allow", edit: "deny" } })
