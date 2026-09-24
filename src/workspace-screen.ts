@@ -14,6 +14,7 @@ const inverse = "\x1b[7m"
 const reset = "\x1b[0m"
 const ansi = /\x1b\[[0-9;]*m/g
 const sixelPath = fileURLToPath(new URL("../assets/allcode-mascot.sixel", import.meta.url))
+const version = (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }).version
 
 function terminalMascot(): string {
   if (process.platform !== "win32" || !process.env.WT_SESSION) return ""
@@ -178,7 +179,7 @@ export class WorkspaceScreen {
     const width = columns - 1
     const frame = Array<string>(rows).fill("")
     const heading = this.mascot ? "                    " : "  "
-    frame[0] = `${white}${heading}All Code v0.2.0${reset}`
+    frame[0] = `${white}${heading}All Code v${version}${reset}`
     frame[1] = `${white}${heading}${this.agent}${reset} ${gray}· ${this.model}${reset}`
     frame[2] = `${gray}${heading}${crop(this.cwd, Math.max(1, width - heading.length))}${reset}`
     frame[6] = `${gray}  One workspace. Every coding agent. Type / for commands.${reset}`
