@@ -12,6 +12,8 @@ allcode [--agent claude|opencode|codex|hermes] [--cwd PATH]
 
 Typing `/` opens the command palette immediately. Continue typing to filter it, move with the up and down arrow keys, press Enter to run the highlighted command, or press Tab to complete it in the input. Escape dismisses the palette.
 
+Outside a picker, drag with the mouse to select visible text and use your terminal's copy action. The wheel or Up/Down scrolls the conversation; Ctrl+Up/Down recalls earlier prompts. Page Up/Down moves through the conversation a screen at a time.
+
 ![AllCode command palette](images/command-palette.svg)
 
 | Command | Description |
@@ -31,7 +33,6 @@ Typing `/` opens the command palette immediately. Continue typing to filter it, 
 | `/effort` | Choose a reasoning level supported by the active model |
 | `/mode` | Choose the active agent's permission mode; `/permissions` is an alias |
 | `/status` | Print the active agent, model, effort, permission mode, session ID, and state file |
-| `/copy` | Copy the full current conversation, including lines outside the visible screen, to the clipboard |
 | `/clear` | Clear the workspace transcript |
 | `/help` | Print the command list |
 | `/exit` | Exit; `/quit` is an alias |

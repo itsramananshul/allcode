@@ -1,5 +1,4 @@
-import type { ReadStream, WriteStream } from "node:tty"
-import type { Key } from "node:readline"
+import type { WriteStream } from "node:tty"
 import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import type { AgentActivity } from "./types.js"
@@ -17,9 +16,6 @@ const reset = "\x1b[0m"
 const ansi = /\x1b\[[0-9;]*m/g
 const sixelPath = fileURLToPath(new URL("../assets/allcode-mascot.sixel", import.meta.url))
 const version = (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }).version
-const mouseKeypresses = new WeakSet<Key>()
-
-export function isMouseKeypress(key: Key): boolean { return mouseKeypresses.has(key) }
 
 function terminalMascot(): string {
   if (process.platform !== "win32" || !process.env.WT_SESSION) return ""
@@ -91,29 +87,6 @@ export class WorkspaceScreen {
   private readonly mascot = terminalMascot()
   private readonly onResize = (): void => this.render()
   private scrollOffset = 0
-  private mouseBuffer = ""
-  private mouseInput?: ReadStream
-  private mouseSequence = false
-  private readonly onMouseKeypress = (_text: string | undefined, key: Key): void => {
-    if (key.sequence === "\x1b[<") this.mouseSequence = true
-    if (!this.mouseSequence) return
-    mouseKeypresses.add(key)
-    if (key.sequence === "M" || key.sequence === "m") this.mouseSequence = false
-  }
-  private readonly onMouseData = (chunk: Buffer | string): void => {
-    this.mouseBuffer += chunk.toString()
-    const wheel = /\x1b\[<(\d+);\d+;\d+[mM]/g
-    let match: RegExpExecArray | null
-    let consumed = 0
-    while ((match = wheel.exec(this.mouseBuffer))) {
-      consumed = wheel.lastIndex
-      const button = Number(match[1])
-      if ((button & 64) !== 0) this.scrollTranscript((button & 1) === 0 ? 3 : -3)
-    }
-    const remaining = this.mouseBuffer.slice(consumed)
-    const start = remaining.lastIndexOf("\x1b[<")
-    this.mouseBuffer = start >= 0 ? remaining.slice(start).slice(-64) : ""
-  }
 
   constructor(
     private readonly output: WriteStream,
@@ -125,19 +98,14 @@ export class WorkspaceScreen {
     this.model = model
   }
 
-  start(input?: ReadStream): void {
-    this.mouseInput = input
-    input?.prependListener("keypress", this.onMouseKeypress)
-    input?.on("data", this.onMouseData)
-    this.output.write("\x1b[?1049h\x1b[?1000h\x1b[?1006h\x1b[?25l")
+  start(): void {
+    this.output.write("\x1b[?1049h\x1b[?1006l\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[?25l")
     this.output.on("resize", this.onResize)
     this.render()
   }
 
   stop(): void {
     if (this.activityTimer) clearTimeout(this.activityTimer)
-    this.mouseInput?.off("data", this.onMouseData)
-    this.mouseInput?.off("keypress", this.onMouseKeypress)
     this.output.off("resize", this.onResize)
     this.output.write("\x1b[?1006l\x1b[?1000l\x1b[?25h\x1b[?1049l")
   }
@@ -192,17 +160,6 @@ export class WorkspaceScreen {
     }
     this.transcript.push({ kind: "activity", text: activity.text })
     this.render()
-  }
-
-  transcriptText(): string {
-    const last = this.transcript.at(-1)
-    const blocks = last?.kind === "user" && last.text.trim() === "/copy"
-      ? this.transcript.slice(0, -1) : this.transcript
-    return blocks.map((block) => {
-      if (block.kind === "agent") return `${block.agent} · ${(block.elapsedMs / 1000).toFixed(1)}s\n${block.text}`
-      if (block.kind === "activity") return `↳ ${block.text}`
-      return block.text
-    }).join("\n\n")
   }
 
   clearLiveActivity(): void {

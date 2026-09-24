@@ -9,7 +9,7 @@ import { WorkspaceScreen } from "./workspace-screen.js"
 describe("command palette", () => {
   it("opens with every AllCode command", () => {
     expect(filterCommandItems("/")).toEqual(commandItems)
-    expect(filterCommandItems("/co").map((item) => item.command)).toContain("/copy")
+    expect(filterCommandItems("/co")).toEqual([])
   })
 
   it("filters commands while the user types", () => {
@@ -35,7 +35,7 @@ describe("interactive picker", () => {
 })
 
 describe("fullscreen command palette", () => {
-  it("does not insert mouse-wheel escape fragments into the prompt", async () => {
+  it("scrolls the transcript on an alternate-scroll arrow without recalling prompt history", async () => {
     const input = new PassThrough() as unknown as ReadStream
     input.isTTY = true
     input.isRaw = false
@@ -47,15 +47,32 @@ describe("fullscreen command palette", () => {
     output.write = ((chunk: string) => { writes.push(chunk); return true }) as WriteStream["write"]
     const screen = new WorkspaceScreen(output, "C:\\work", "Codex", "default")
     emitKeypressEvents(input)
-    screen.start(input)
+    screen.start()
     for (let index = 0; index < 20; index += 1) screen.appendUser(`message ${index}`)
     const result = readCommandLine(["old prompt"], input, output, screen)
-    input.write(Buffer.from("\x1b[<64;12;10M"))
+    input.write("\x1b[A")
     expect(writes.at(-1)).toContain("message 16")
     expect(writes.at(-1)).not.toContain("old prompt")
     input.write("hi\r")
     expect(await result).toBe("hi")
     screen.stop()
+  })
+
+  it("still recalls prompt history with Ctrl+Up", async () => {
+    const input = new EventEmitter() as ReadStream
+    input.isRaw = false
+    input.setRawMode = () => input
+    input.resume = () => input
+    input.pause = () => input
+    const output = new EventEmitter() as WriteStream
+    output.rows = 24
+    output.columns = 80
+    output.write = (() => true) as WriteStream["write"]
+    const screen = new WorkspaceScreen(output, "C:\\work", "Codex", "default")
+    const result = readCommandLine(["old prompt"], input, output, screen)
+    input.emit("keypress", undefined, { name: "up", ctrl: true })
+    input.emit("keypress", undefined, { name: "return" })
+    expect(await result).toBe("old prompt")
   })
 
   it("moves the highlight, completes with Tab, and runs with Enter", async () => {

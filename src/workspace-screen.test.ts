@@ -5,21 +5,6 @@ import { describe, expect, it } from "vitest"
 import { WorkspaceScreen } from "./workspace-screen.js"
 
 describe("workspace transcript", () => {
-  it("exports the whole unwrapped conversation without ANSI codes or the copy command", () => {
-    const output = Object.assign(new EventEmitter(), {
-      columns: 30,
-      rows: 24,
-      write() { return true },
-    }) as unknown as WriteStream
-    const screen = new WorkspaceScreen(output, "C:\\project", "Codex", "default")
-    const longPrompt = "a".repeat(90)
-    screen.appendUser(longPrompt)
-    screen.appendActivity({ kind: "tool", text: "Read · index.ts" })
-    screen.appendAgent("Codex", "A reply with é and 🧪", 1500)
-    screen.appendUser("/copy")
-    expect(screen.transcriptText()).toBe(`${longPrompt}\n\n↳ Read · index.ts\n\nCodex · 1.5s\nA reply with é and 🧪`)
-  })
-
   it("renders live tool activity and streamed text while the agent works", () => {
     const writes: string[] = []
     const output = Object.assign(new EventEmitter(), {
@@ -41,26 +26,27 @@ describe("workspace transcript", () => {
     screen.stop()
   })
 
-  it("scrolls earlier messages with the wheel without replacing the composer", () => {
+  it("leaves mouse selection to the terminal and scrolls earlier messages without replacing the composer", () => {
     const writes: string[] = []
     const output = Object.assign(new EventEmitter(), {
       columns: 80,
       rows: 24,
       write(value: string) { writes.push(value); return true },
     }) as unknown as WriteStream
-    const input = new EventEmitter()
     const screen = new WorkspaceScreen(output, "C:\\project", "Codex", "default model")
-    screen.start(input as never)
+    screen.start()
+    expect(writes[0]).toContain("\x1b[?1000l")
+    expect(writes[0]).not.toContain("\x1b[?1000h")
     for (let index = 0; index < 20; index += 1) screen.appendUser(`message ${index}`)
     screen.setInput("unfinished prompt", 17)
     expect(writes.at(-1)).toContain("message 19")
-    input.emit("data", Buffer.from("\x1b[<64;12;10M"))
+    screen.scrollTranscript(3)
     expect(writes.at(-1)).toContain("message 16")
     expect(writes.at(-1)).toContain("unfinished prompt")
     expect(writes.at(-1)).not.toContain("message 19")
-    input.emit("data", Buffer.from("\x1b[<65;12;10M"))
+    screen.scrollTranscript(-3)
     expect(writes.at(-1)).toContain("message 19")
-    input.emit("data", Buffer.from("\x1b[<64;12;10M"))
+    screen.scrollTranscript(3)
     screen.appendUser("new message")
     expect(writes.at(-1)).toContain("new message")
     screen.stop()
