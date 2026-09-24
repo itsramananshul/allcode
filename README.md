@@ -4,7 +4,7 @@
 
 <h1 align="center">All Code</h1>
 
-<p align="center">Claude Code, OpenCode, Codex, and Hermes in one terminal.</p>
+<p align="center">Claude Code, OpenCode, Codex, Hermes, and more installed coding agents in one terminal.</p>
 
 <p align="center">
   <a href="https://github.com/itsramananshul/allcode/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/itsramananshul/allcode/ci.yml?branch=main&style=flat-square&label=build" alt="Build status"></a>
@@ -32,7 +32,7 @@ npm install
 npm link
 ```
 
-Alternatively, download `allcode-0.2.0.tgz` from the [v0.2.0 release](https://github.com/itsramananshul/allcode/releases/tag/v0.2.0) and install that package with `npm install -g ./allcode-0.2.0.tgz`.
+Alternatively, download `allcode-0.3.0.tgz` from the [v0.3.0 release](https://github.com/itsramananshul/allcode/releases/tag/v0.3.0) and install that package with `npm install -g ./allcode-0.3.0.tgz`.
 
 Run it from a project directory:
 
@@ -63,7 +63,9 @@ Change agents without leaving the session:
 › apply the review and run the tests
 ```
 
-`/agent` opens the same searchable, arrow-key picker as `/model`; a name after the command switches directly. Your submitted prompts are labeled `You`, and replies carry the active agent's name.
+`/agent` opens the same searchable, arrow-key picker as `/model`; a name after the command switches directly. Your submitted prompts are highlighted without a `You` prefix, and replies carry the active agent's name.
+
+To add another installed CLI, type `/add` and choose Agent. All Code lists coding-agent commands found on your PATH; select one to have your current agent write an adapter for review. If the scan misses it, enter the command name or use advanced manual setup. ACP and one-shot registration are also available. Custom adapters and registrations live in `~/.allcode`, outside the package, so an All Code update does not replace them. A CLI can expose only capabilities its own interface provides. See [Adding agents and skills](docs/agents-and-models.md#adding-agents-and-skills).
 
 ![All Code agent picker preview](docs/images/agent-picker.svg)
 
@@ -117,6 +119,7 @@ All Code also gives the active agent an MCP broker. It can delegate a task to an
 | --- | --- |
 | `/agent` | Open the agent picker |
 | `/agent <name>` | Switch to Claude Code, OpenCode, Codex, or Hermes |
+| `/add` | Register an installed agent or install a skill |
 | `/model` | Open the model picker for the active agent |
 | `/model <id>` | Select an exact model ID |
 | `/models` | Browse and select a model from any agent |

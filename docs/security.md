@@ -26,6 +26,8 @@ All Code's approval prompt defaults to Deny. It displays the provider's tool inp
 
 The one-shot `allcode run` command and background MCP-delegated tasks remain headless. They do not show All Code's approval prompt; actions requiring a human decision in those paths are subject to each adapter's non-interactive defaults.
 
+Registered one-shot CLIs use their own permissions and have no All Code approval transport. Registration never downloads or authenticates an executable. Custom adapter drafts must be reviewed before installation: `agent.mjs` executes as your user and can access local files and credentials. All Code rejects symlinks and existing adapter names and does not run draft code during inspection. Skill installation is opt-in: All Code previews the destinations, rejects symlinks, and leaves existing skill folders untouched. Review third-party `SKILL.md` instructions and bundled scripts before allowing an agent to use them.
+
 ## Credentials
 
 Authentication stays in the native CLI stores. Prompts and task results may still contain sensitive information, so protect `.allcode/session.json` and do not commit it.

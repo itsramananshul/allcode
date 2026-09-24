@@ -20,7 +20,7 @@ npm install
 npm link
 ```
 
-The [v0.2.0 release](https://github.com/itsramananshul/allcode/releases/tag/v0.2.0) also includes an installable npm tarball. Download it, then run `npm install -g ./allcode-0.2.0.tgz`. This installs the `allcode` command; each coding agent still needs its own installation and login.
+The [v0.3.0 release](https://github.com/itsramananshul/allcode/releases/tag/v0.3.0) also includes an installable npm tarball. Download it, then run `npm install -g ./allcode-0.3.0.tgz`. This installs the `allcode` command; each coding agent still needs its own installation and login.
 
 Confirm that All Code can find the agents:
 
@@ -102,6 +102,8 @@ Use `/models` to browse models from all installed agents. Select with the arrow 
 ![All Code model picker preview](images/model-picker.svg)
 
 Use `/effort` to choose one of the selected model's reasoning levels. Use `/mode` to set that agent's permission mode. If the chosen mode asks and an action requires your decision, All Code pauses and shows an approve/deny prompt. Deny is selected initially; press Tab to select Allow once, then Enter, or press `A` to allow immediately. Press `D` or Escape to deny. The permission mode and effort are shown by `/status` and saved per agent.
+
+To connect another installed coding CLI or add a shared `SKILL.md` skill, type `/add`. Choose Agent or Skill, then follow the prompts. The Agent picker scans for installed commands; choose one to generate an adapter draft, then inspect it before installing. If it isn't listed, search by command name or use advanced manual setup. ACP and one-shot routes remain available. [Agent and skill setup](agents-and-models.md#adding-agents-and-skills) explains the capabilities and install locations.
 
 ![All Code approval prompt preview](images/approval-prompt.svg)
 

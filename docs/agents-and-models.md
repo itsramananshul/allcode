@@ -2,7 +2,7 @@
 
 ## Agent routes
 
-All Code has four routes:
+All Code includes four routes and can register additional installed agents:
 
 | Route | Executable | Typical model ID |
 | --- | --- | --- |
@@ -80,3 +80,21 @@ Delegated agents use their own model selection, authentication, tools, and permi
 ## Provider errors
 
 Authentication failures, account restrictions, unavailable deployments, and rate limits come from the selected provider. Use `/model` to choose another available model or `/agent` to change routes.
+
+## Adding agents and skills
+
+`/add` opens a picker for Agent or Skill. For an agent, All Code scans the current terminal's PATH for known coding-agent commands and offers the ones it finds. Select a new agent to have the active agent inspect its CLI and write an adapter draft. Use **Find by command name** if a CLI is installed on PATH but not listed. **Advanced manual setup** remains available for ACP and one-shot routes. The scan reads launcher files; it does not execute every candidate, search the entire disk, install software, or prove that a CLI is authenticated. All Code uses the bundled [adapter-authoring skill](../skills/allcode-agent-adapter/SKILL.md) as its instructions. The draft goes in `<workspace>/.allcode/adapter-drafts/<name>`; review `adapter.json` and `agent.mjs` before confirming installation. The installed copy goes in `~/.allcode/adapters/<name>`, with its registration in `~/.allcode/agents.json`. Neither location is part of the npm package, so package updates leave custom adapters and their configuration in place. Adapter JavaScript runs with your user account's permissions.
+
+You can also register an ACP server or a one-shot CLI directly. ACP agents are contacted over their server for model discovery, native session IDs, and permission requests. One-shot agents run once per turn and return stdout as their reply. All Code passes the shared transcript on an agent switch, but it cannot invent native sessions or approval prompts for a CLI that lacks them. A custom adapter can expose more capabilities when the underlying CLI offers them; unsupported capabilities remain unavailable.
+
+The one-shot command receives its prompt on stdin by default. If an argument contains `{prompt}`, the prompt is inserted there instead; `{model}` inserts the selected model ID. Avoid `{prompt}` if prompts may contain secrets, because command-line arguments can be visible to other processes. An ACP registration should use the arguments that start that CLI's ACP server. `/add` does not install or authenticate the CLI.
+
+For skills, All Code copies a reviewed `SKILL.md` folder to the skill locations used by installed built-in agents:
+
+| Agent | Skill location |
+| --- | --- |
+| Claude Code | `~/.claude/skills/<name>` |
+| Codex and OpenCode | `~/.agents/skills/<name>` (one shared copy) |
+| Hermes | `${HERMES_HOME:-~/.hermes}/skills/<name>` |
+
+Custom agents can declare additional absolute `skillsDirs` in their adapter manifest. All Code includes those destinations when installing a skill; it does not assume every CLI supports `SKILL.md`. This covers shared `SKILL.md` skills, not proprietary tool or plugin formats. Review a skill's instructions and scripts before installing it; All Code does not execute them during installation, but an agent may use them later. If a target name already exists, All Code skips it and reports the conflict.

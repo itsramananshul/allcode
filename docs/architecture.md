@@ -67,8 +67,6 @@ Every child adapter receives the MCP server configuration. This lets an agent se
 
 ## Adding an agent
 
-1. Add the route name to `src/types.ts`.
-2. Implement `AgentAdapter` in `src/adapters.ts`.
-3. Add native model discovery in `src/models.ts`.
-4. Add event parsing and invocation tests; interactive agents may need a persistent protocol runner.
-5. Add the route to the picker and command reference.
+Built-in adapters live in `src/adapters.ts`. `/add agent` stores registrations in `~/.allcode/agents.json`; `src/agent-registry.ts` lists them alongside built-in routes. ACP registrations use the ACP runner for model catalogs, sessions, and approval requests. One-shot registrations use direct process spawning, stdin or a `{prompt}` argument, and plain-text stdout. Custom adapters are copied to `~/.allcode/adapters/<name>` and implement the v1 plugin API (`run`, with optional model, effort, and permission-mode catalogs). They can call All Code's approval handler and MCP server. All routes receive shared conversation through the session handoff layer. Custom adapter code is outside the package and survives package updates, though the v1 API must remain compatible.
+
+`src/skill-installer.ts` reads local or GitHub-hosted `SKILL.md` folders, shows target paths, and copies only after confirmation. Codex and OpenCode share the `.agents/skills` destination; Claude Code and Hermes have separate destinations. A custom agent may add its own declared skill directories.

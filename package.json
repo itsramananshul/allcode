@@ -1,7 +1,7 @@
 {
   "name": "allcode",
-  "version": "0.2.0",
-  "description": "One terminal workspace for Claude Code, OpenCode, Codex, and Hermes.",
+  "version": "0.3.0",
+  "description": "One terminal workspace for Claude Code, OpenCode, Codex, Hermes, and more coding agents.",
   "license": "MIT",
   "homepage": "https://github.com/itsramananshul/allcode#readme",
   "repository": {
@@ -50,6 +50,7 @@
   "files": [
     "dist",
     "assets",
+    "skills",
     "docs",
     "README.md",
     "LICENSE",

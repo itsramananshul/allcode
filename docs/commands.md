@@ -21,6 +21,9 @@ Typing `/` opens the command palette immediately. Continue typing to filter it, 
 | `/agent opencode` | Switch to OpenCode |
 | `/agent codex` | Switch to Codex |
 | `/agent hermes` | Switch to Hermes |
+| `/add` | Choose Agent or Skill |
+| `/add agent` | Scan installed agent commands, build a reviewed adapter, or register an ACP/one-shot CLI |
+| `/add skill` | Copy a reviewed `SKILL.md` folder into supported agents' skill directories |
 | `/provider` | Alias for `/agent` |
 | `/model` | Open the model picker |
 | `/model <id>` | Select a native model ID |
@@ -34,7 +37,7 @@ Typing `/` opens the command palette immediately. Continue typing to filter it, 
 
 Input that does not match an All Code command is sent to the active agent as a prompt. Agent-specific interactive slash commands are not added to the All Code palette; use `allcode native --agent <name>` when you need that agent's own terminal commands.
 
-`/agent`, `/model`, `/models`, `/effort`, and `/mode` open searchable pickers. Their lists support arrow-key navigation, Enter or Tab to select, and Escape to keep the current value.
+`/agent`, `/add`, `/model`, `/models`, `/effort`, and `/mode` open searchable pickers. Their lists support arrow-key navigation, Enter or Tab to select, and Escape to keep the current value.
 
 `/effort` reads OpenCode variants and Codex-supported reasoning levels for the current model. Claude Code offers its CLI effort levels. Selecting another model resets that agent's effort to its default.
 
@@ -59,7 +62,33 @@ Approval prompts are part of the interactive `allcode` workspace. One-shot `allc
 allcode agents
 ```
 
-Prints the availability and resolved executable for Claude Code, OpenCode, Codex, and Hermes.
+Prints the availability and resolved executable for Claude Code, OpenCode, Codex, Hermes, and registered agents.
+
+## Add an agent or skill
+
+Type `/add` in the workspace to choose Agent or Skill. The agent picker scans commands on PATH. Choose a detected CLI to ask the active agent to inspect it and write a draft in the workspace; if the CLI is not listed, search by its command name or choose advanced manual setup. Review the draft's code, then confirm installation. The adapter and its registration are saved under `~/.allcode`, separate from the npm package. To install a draft from a shell:
+
+```sh
+allcode add agent ./path/to/adapter-draft
+```
+
+The draft needs `adapter.json` and `agent.mjs`; see the [adapter-authoring skill](../skills/allcode-agent-adapter/SKILL.md). All Code requires confirmation before installing executable adapter code. You can also register a basic route directly:
+
+```bash
+allcode add agent myagent --protocol acp --command /absolute/path/to/myagent --arg acp
+allcode add agent mycli --protocol oneshot --command /absolute/path/to/mycli --arg run --arg --plain
+```
+
+The command must already be installed. Launch arguments are passed directly, without a shell. For one-shot CLIs, All Code sends the prompt on stdin unless an argument contains `{prompt}`. Add `--model MODEL_ID` for each model you want listed; include `{model}` in an argument if selecting that model should reach the CLI. One-shot output is read as plain text from stdout. It has no native session resume, model discovery, or All Code approval callback. ACP agents supply those capabilities through their own server. If the CLI reads `SKILL.md` files, pass each verified global directory with `--skill-dir PATH`; skill installation will include it. Registrations are stored in `~/.allcode/agents.json` and appear in `/agent`, `/models`, `allcode agents`, and delegation.
+
+Install a skill from a local folder or a GitHub repository whose root contains `SKILL.md` (use `#path/to/skill` for a subdirectory):
+
+```bash
+allcode add skill ./my-skill
+allcode add skill https://github.com/owner/repo#skills/my-skill
+```
+
+All Code shows the skill name and destinations, then asks before copying. In a non-interactive shell, pass `--yes` after reviewing the source. Existing same-name folders are skipped, never overwritten. GitHub skill sources are cloned for inspection; agent executables are not downloaded automatically. See [Adding agents and skills](agents-and-models.md#adding-agents-and-skills) for the destination rules.
 
 ## Inspect models
 
@@ -122,5 +151,6 @@ The server exposes:
 | `ALL_CODE_OPENCODE_COMMAND` | Absolute path to the OpenCode executable |
 | `ALL_CODE_CODEX_COMMAND` | Absolute path to the Codex executable |
 | `ALL_CODE_HERMES_COMMAND` | Absolute path to the Hermes executable |
+| `ALL_CODE_AGENT_REGISTRY` | Override the custom-agent registry path (advanced use and tests) |
 
 `ALL_CODE_DEPTH` and `ALL_CODE_HOST` are set internally for delegated processes.
